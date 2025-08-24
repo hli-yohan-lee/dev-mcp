@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # Redis (Nonce 저장용)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 회사 API 서버
+  corp-api:
+    build: ./corp-api
+    ports:
+      - "8080:8080"
+    environment:
+      - HMAC_KEY=supersecret
+      - NONCE_REDIS_URL=redis://redis:6379/3
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./corp-api:/app
+    command: uvicorn app:APP --host 0.0.0.0 --port 8080 --reload
+
+  # 게이트웨이 (Nginx)
+  gateway:
+    build: ./gateway
+    ports:
+      - "8443:443"
+    volumes:
+      - ./gateway/tls:/etc/nginx/tls:ro
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - corp-api
+    environment:
+      - NGINX_HOST=localhost
+
+  # MCP 서버
+  mcp-server:
+    build: ./mcp-server
+    ports:
+      - "9000:9000"
+    environment:
+      - COMPANY_API_BASE=https://gateway:443
+      - HMAC_KEY=supersecret
+      - MCP_ID=mcp-invest
+    depends_on:
+      - gateway
+    volumes:
+      - ./mcp-server:/app
+    command: uvicorn app:APP --host 0.0.0.0 --port 9000 --reload
+
+  # 프론트엔드 (React)
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_MCP_BASE_URL=http://localhost:9000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+    depends_on:
+      - mcp-server
+
+volumes:
+  redis_data: 

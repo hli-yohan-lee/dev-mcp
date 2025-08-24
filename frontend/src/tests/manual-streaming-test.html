@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Streaming Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ccc;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .test-result {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #007bff;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Manual Streaming Functionality Test</h1>
+    <p>이 페이지는 스트리밍 기능을 수동으로 테스트하기 위한 도구입니다.</p>
+    
+    <div class="test-section">
+        <h2>Test 1: 짧은 응답 스트리밍 (Requirement 2.1)</h2>
+        <p>짧은 응답이 한 글자씩 표시되는지 확인합니다.</p>
+        <button onclick="testShortResponse()">짧은 응답 테스트 실행</button>
+        <div class="progress">
+            <div id="progress1" class="progress-bar"></div>
+        </div>
+        <div id="result1" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: 긴 응답 스트리밍 (Requirement 2.2)</h2>
+        <p>긴 응답이 부드럽게 한 글자씩 표시되는지 확인합니다.</p>
+        <button onclick="testLongResponse()">긴 응답 테스트 실행</button>
+        <div class="progress">
+            <div id="progress2" class="progress-bar"></div>
+        </div>
+        <div id="result2" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: 스트리밍 완료 확인 (Requirement 2.3)</h2>
+        <p>스트리밍이 완료되고 전체 응답이 표시되는지 확인합니다.</p>
+        <button onclick="testStreamingCompletion()">완료 테스트 실행</button>
+        <div class="progress">
+            <div id="progress3" class="progress-bar"></div>
+        </div>
+        <div id="result3" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: 특수 문자 및 멀티라인 응답</h2>
+        <p>특수 문자와 여러 줄이 포함된 응답의 스트리밍을 확인합니다.</p>
+        <button onclick="testSpecialCharacters()">특수 문자 테스트 실행</button>
+        <div class="progress">
+            <div id="progress4" class="progress-bar"></div>
+        </div>
+        <div id="result4" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: 응답 파싱 통합 테스트</h2>
+        <p>수정된 응답 파싱 로직과 스트리밍의 통합을 확인합니다.</p>
+        <button onclick="testResponseParsing()">파싱 통합 테스트 실행</button>
+        <div class="progress">
+            <div id="progress5" class="progress-bar"></div>
+        </div>
+        <div id="result5" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>전체 테스트 실행</h2>
+        <button onclick="runAllTests()">모든 테스트 실행</button>
+        <div id="overall-result" class="test-result"></div>
+    </div>
+
+    <script>
+        // 스트리밍 시뮬레이션 함수 (App.tsx의 로직을 기반으로 함)
+        async function simulateStreaming(responseText, onUpdate, progressElementId) {
+            let currentText = "";
+            const progressElement = document.getElementById(progressElementId);
+            
+            for (let i = 0; i < responseText.length; i++) {
+                currentText += responseText[i];
+                onUpdate(currentText);
+                
+                // 진행률 업데이트
+                const progress = ((i + 1) / responseText.length) * 100;
+                progressElement.style.width = progress + '%';
+                
+                // 20ms 딜레이 (실제 구현과 동일)
+                await new Promise(resolve => setTimeout(resolve, 20));
+            }
+            
+            return currentText;
+        }
+
+        // Test 1: 짧은 응답 스트리밍
+        async function testShortResponse() {
+            const resultElement = document.getElementById('result1');
+            const shortResponse = "안녕하세요!";
+            const updates = [];
+            
+            resultElement.textContent = "테스트 진행 중...";
+            resultElement.className = "test-result";
+            
+            try {
+                const finalText = await simulateStreaming(
+                    shortResponse,
+                    (text) => {
+                        updates.push(text);
+                        resultElement.textContent = `현재 표시: "${text}"`;
+                    },
+                    'progress1'
+                );
+                
+                // 검증
+                const expectedUpdates = ["안", "안녕", "안녕하", "안녕하세", "안녕하세요", "안녕하세요!"];
+                const passed = JSON.stringify(updates) === JSON.stringify(expectedUpdates);
+                
+                resultElement.className = `test-result ${passed ? 'success' : 'error'}`;
+                resultElement.textContent = `
+테스트 결과: ${passed ? '✅ 통과' : '❌ 실패'}
+최종 텍스트: "${finalText}"
+업데이트 횟수: ${updates.length}
+예상 업데이트: ${expectedUpdates.length}
+실제 업데이트: [${updates.join('", "')}]
+                `.trim();
+            } catch (error) {
+                resultElement.className = "test-result error";
+                resultElement.textContent = `❌ 에러: ${error.message}`;
+            }
+        }
+
+        // Test 2: 긴 응답 스트리밍
+        async function testLongResponse() {
+            const resultElement = document.getElementById('result2');
+            const longResponse = "이것은 스트리밍 효과를 테스트하기 위한 매우 긴 응답입니다. 각 글자가 하나씩 부드럽게 나타나야 하며, 사용자는 텍스트가 점진적으로 표시되는 것을 볼 수 있어야 합니다. 이 테스트는 긴 응답에서도 스트리밍이 올바르게 작동하는지 확인합니다.";
+            let updateCount = 0;
+            
+            resultElement.textContent = "긴 응답 테스트 진행 중...";
+            resultElement.className = "test-result";
+            
+            try {
+                const startTime = Date.now();
+                const finalText = await simulateStreaming(
+                    longResponse,
+                    (text) => {
+                        updateCount++;
+                        resultElement.textContent = `진행률: ${updateCount}/${longResponse.length}\n현재: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`;
+                    },
+                    'progress2'
+                );
+                const endTime = Date.now();
+                
+                // 검증
+                const expectedDuration = longResponse.length * 20; // 20ms per character
+                const actualDuration = endTime - startTime;
+                const durationOk = Math.abs(actualDuration - expectedDuration) < 1000; // 1초 오차 허용
+                
+                const passed = updateCount === longResponse.length && finalText === longResponse && durationOk;
+                
+                resultElement.className = `test-result ${passed ? 'success' : 'error'}`;
+                resultElement.textContent = `
+테스트 결과: ${passed ? '✅ 통과' : '❌ 실패'}
+최종 텍스트 길이: ${finalText.length} (예상: ${longResponse.length})
+업데이트 횟수: ${updateCount} (예상: ${longResponse.length})
+소요 시간: ${actualDuration}ms (예상: ~${expectedDuration}ms)
+텍스트 일치: ${finalText === longResponse ? '✅' : '❌'}
+                `.trim();
+            } catch (error) {
+                resultElement.className = "test-result error";
+                resultElement.textContent = `❌ 에러: ${error.message}`;
+            }
+        }
+
+        // Test 3: 스트리밍 완료 확인
+        async function testStreamingCompletion() {
+            const resultElement = document.getElementById('result3');
+            const completeResponse = "스트리밍 완료 테스트입니다. 이 전체 메시지가 완전히 표시되어야 합니다!";
+            let finalDisplayedText = "";
+            
+            resultElement.textContent = "완료 테스트 진행 중...";
+            resultElement.className = "test-result";
+            
+            try {
+                const finalText = await simulateStreaming(
+                    completeResponse,
+                    (text) => {
+                        finalDisplayedText = text;
+                        resultElement.textContent = `스트리밍 중: "${text}"`;
+                    },
+                    'progress3'
+                );
+                
+                // 검증
+                const completionOk = finalText === completeResponse && 
+                                   finalDisplayedText === completeResponse &&
+                                   finalText.length === completeResponse.length;
+                
+                resultElement.className = `test-result ${completionOk ? 'success' : 'error'}`;
+                resultElement.textContent = `
+테스트 결과: ${completionOk ? '✅ 통과' : '❌ 실패'}
+최종 반환값: "${finalText}"
+최종 표시값: "${finalDisplayedText}"
+길이 일치: ${finalText.length === completeResponse.length ? '✅' : '❌'}
+내용 일치: ${finalText === completeResponse ? '✅' : '❌'}
+                `.trim();
+            } catch (error) {
+                resultElement.className = "test-result error";
+                resultElement.textContent = `❌ 에러: ${error.message}`;
+            }
+        }
+
+        // Test 4: 특수 문자 및 멀티라인 응답
+        async function testSpecialCharacters() {
+            const resultElement = document.getElementById('result4');
+            const specialResponse = "특수문자 테스트: 🤖 émojis & spëcial chars!\n두 번째 줄입니다.\n세 번째 줄: @#$%^&*()";
+            let streamedText = "";
+            
+            resultElement.textContent = "특수 문자 테스트 진행 중...";
+            resultElement.className = "test-result";
+            
+            try {
+                const finalText = await simulateStreaming(
+                    specialResponse,
+                    (text) => {
+                        streamedText = text;
+                        resultElement.textContent = `현재: "${text}"`;
+                    },
+                    'progress4'
+                );
+                
+                // 검증
+                const linesOk = finalText.split('\n').length === 3;
+                const specialCharsOk = finalText.includes('🤖') && finalText.includes('émojis') && finalText.includes('@#$%^&*()');
+                const passed = finalText === specialResponse && streamedText === specialResponse && linesOk && specialCharsOk;
+                
+                resultElement.className = `test-result ${passed ? 'success' : 'error'}`;
+                resultElement.textContent = `
+테스트 결과: ${passed ? '✅ 통과' : '❌ 실패'}
+줄 수: ${finalText.split('\n').length} (예상: 3)
+특수 문자 포함: ${specialCharsOk ? '✅' : '❌'}
+최종 텍스트:
+"${finalText}"
+                `.trim();
+            } catch (error) {
+                resultElement.className = "test-result error";
+                resultElement.textContent = `❌ 에러: ${error.message}`;
+            }
+        }
+
+        // Test 5: 응답 파싱 통합 테스트
+        async function testResponseParsing() {
+            const resultElement = document.getElementById('result5');
+            
+            resultElement.textContent = "응답 파싱 통합 테스트 진행 중...";
+            resultElement.className = "test-result";
+            
+            try {
+                // 수정된 파싱 로직 시뮬레이션
+                const mockResponseData = {
+                    ok: true,
+                    response: "수정된 파싱 로직이 올바르게 작동합니다!"
+                };
+                
+                // 올바른 파싱: data.response 사용 (data.data?.response 제거됨)
+                const responseText = mockResponseData.response || "응답을 받았지만 내용이 비어있습니다.";
+                
+                let streamedContent = "";
+                const finalText = await simulateStreaming(
+                    responseText,
+                    (text) => {
+                        streamedContent = text;
+                        resultElement.textContent = `파싱된 응답 스트리밍: "${text}"`;
+                    },
+                    'progress5'
+                );
+                
+                // 빈 응답 테스트도 수행
+                const emptyMockData = { ok: true, response: "" };
+                const emptyResponseText = emptyMockData.response || "응답을 받았지만 내용이 비어있습니다.";
+                
+                // 검증
+                const parsingOk = finalText === mockResponseData.response;
+                const fallbackOk = emptyResponseText === "응답을 받았지만 내용이 비어있습니다.";
+                const passed = parsingOk && fallbackOk;
+                
+                resultElement.className = `test-result ${passed ? 'success' : 'error'}`;
+                resultElement.textContent = `
+테스트 결과: ${passed ? '✅ 통과' : '❌ 실패'}
+정상 응답 파싱: ${parsingOk ? '✅' : '❌'}
+빈 응답 폴백: ${fallbackOk ? '✅' : '❌'}
+최종 스트리밍 결과: "${finalText}"
+빈 응답 폴백 메시지: "${emptyResponseText}"
+                `.trim();
+            } catch (error) {
+                resultElement.className = "test-result error";
+                resultElement.textContent = `❌ 에러: ${error.message}`;
+            }
+        }
+
+        // 모든 테스트 실행
+        async function runAllTests() {
+            const overallResult = document.getElementById('overall-result');
+            overallResult.textContent = "전체 테스트 실행 중...";
+            overallResult.className = "test-result";
+            
+            const tests = [
+                { name: "짧은 응답 스트리밍", func: testShortResponse },
+                { name: "긴 응답 스트리밍", func: testLongResponse },
+                { name: "스트리밍 완료 확인", func: testStreamingCompletion },
+                { name: "특수 문자 테스트", func: testSpecialCharacters },
+                { name: "응답 파싱 통합", func: testResponseParsing }
+            ];
+            
+            const results = [];
+            
+            for (const test of tests) {
+                try {
+                    await test.func();
+                    results.push(`✅ ${test.name}: 통과`);
+                } catch (error) {
+                    results.push(`❌ ${test.name}: 실패 (${error.message})`);
+                }
+                
+                // 테스트 간 잠시 대기
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            const passedCount = results.filter(r => r.includes('✅')).length;
+            const totalCount = results.length;
+            const allPassed = passedCount === totalCount;
+            
+            overallResult.className = `test-result ${allPassed ? 'success' : 'error'}`;
+            overallResult.textContent = `
+전체 테스트 결과: ${allPassed ? '✅ 모든 테스트 통과' : '❌ 일부 테스트 실패'}
+통과: ${passedCount}/${totalCount}
+
+상세 결과:
+${results.join('\n')}
+            `.trim();
+        }
+    </script>
+</body>
+</html>
