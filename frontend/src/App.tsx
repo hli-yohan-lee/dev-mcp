@@ -472,6 +472,7 @@ export default function App() {
   const invokePureMCP = async (action: string, args: any) => {
     try {
       addDebugLog(`🔧 백엔드 API 직접 호출: ${action}`);
+      addDebugLog(`📤 전송할 데이터: ${JSON.stringify(args, null, 2)}`);
       
       // 백엔드 서버로 직접 호출 (포트 9000)
       const response = await fetch(`http://localhost:9000/api/${action}`, {
@@ -1070,24 +1071,32 @@ ${executionResults.map((result: any, index) => {
   const executeMcpStep = async (step: any) => {
     try {
       addDebugLog(`⚡ MCP 단계 실행: ${step.step} (${step.tool})`);
+      addDebugLog(`🔑 GitHub Token 상태: ${githubToken ? '설정됨' : '설정되지 않음'}`);
       
       let result;
       switch (step.tool) {
         case 'pdf':
+          addDebugLog(`📄 PDF 도구 호출: ${JSON.stringify(step.params)}`);
           result = await invokePureMCP('pdf', step.params);
           break;
         case 'database':
+          addDebugLog(`🗄️ Database 도구 호출: ${JSON.stringify(step.params)}`);
           result = await invokePureMCP('database', step.params);
           break;
         case 'github':
-          result = await invokePureMCP('github', { ...step.params, password: githubToken });
+          const githubParams = { ...step.params, password: githubToken };
+          addDebugLog(`🔗 GitHub 도구 호출: ${JSON.stringify(githubParams)}`);
+          result = await invokePureMCP('github', githubParams);
           break;
         case 'health':
+          addDebugLog(`🏥 Health 도구 호출: ${JSON.stringify(step.params)}`);
           result = await invokePureMCP('health', step.params);
           break;
         default:
           throw new Error(`알 수 없는 도구: ${step.tool}`);
       }
+      
+      addDebugLog(`✅ MCP 도구 실행 완료: ${step.tool} - ${result.status}`);
       
       return {
         step: step.step,
@@ -1288,6 +1297,34 @@ ${executionResults.map((result: any, index) => {
                     className="mcp-tool-button"
                   >
                     백엔드 상태 확인
+                  </button>
+                </div>
+
+                <h4>🔗 GitHub 테스트</h4>
+                <div className="tool-buttons">
+                  <button 
+                    onClick={() => {
+                      addDebugLog(`🔑 현재 GitHub Token: ${githubToken ? '설정됨' : '설정되지 않음'}`);
+                      invokePureMCP("github", { 
+                        file_type: "GIT",
+                        password: githubToken 
+                      });
+                    }}
+                    className="mcp-tool-button"
+                  >
+                    GitHub GIT 가이드 테스트
+                  </button>
+                  <button 
+                    onClick={() => {
+                      addDebugLog(`🔑 현재 GitHub Token: ${githubToken ? '설정됨' : '설정되지 않음'}`);
+                      invokePureMCP("github", { 
+                        file_type: "API",
+                        password: githubToken 
+                      });
+                    }}
+                    className="mcp-tool-button"
+                  >
+                    GitHub API 가이드 테스트
                   </button>
                 </div>
               </div>
