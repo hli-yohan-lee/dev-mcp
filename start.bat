@@ -2,6 +2,12 @@
 chcp 65001 >nul
 echo MCP Stack Starting...
 
+REM Kill existing processes
+echo Killing existing Node, Python, and Java processes...
+taskkill /F /IM node.exe >nul 2>&1
+taskkill /F /IM python.exe >nul 2>&1
+taskkill /F /IM java.exe >nul 2>&1
+
 REM Check Python
 python --version >nul 2>&1
 if errorlevel 1 (
@@ -19,22 +25,22 @@ if errorlevel 1 (
 )
 
 echo Starting Corp API Server...
-start "Corp API" cmd /k "cd corp-api && set HMAC_KEY=supersecret && python -m venv venv && venv\Scripts\activate.bat && pip install -r requirements.txt && python -m uvicorn app:APP --host 0.0.0.0 --port 8080 --reload"
+start "Corp API" cmd /k "cd corp-api && python -m uvicorn app:APP --host 0.0.0.0 --port 8080 --reload"
 
-timeout /t 5 /nobreak >nul
+timeout /t 2 /nobreak >nul
 
 echo Starting Backend Server...
-start "Backend Server" cmd /k "cd backend && if exist venv rmdir /s /q venv && python -m venv venv && venv\Scripts\activate.bat && pip install -r requirements.txt && python main.py"
+start "Backend Server" cmd /k "cd backend && python main.py"
 
-timeout /t 5 /nobreak >nul
+timeout /t 2 /nobreak >nul
 
 echo Starting MCP Server...
-start "MCP Server" cmd /k "cd mcp-server && if exist venv rmdir /s /q venv && set COMPANY_API_BASE=http://localhost:8080 && set HMAC_KEY=supersecret && set MCP_ID=mcp-invest && python -m venv venv && venv\Scripts\activate.bat && pip install -r requirements.txt && python -m uvicorn app:APP --host 0.0.0.0 --port 9000 --reload"
+start "MCP Server" cmd /k "cd mcp-server && set COMPANY_API_BASE=http://localhost:8080 && set HMAC_KEY=supersecret && set MCP_ID=mcp-invest && python -m uvicorn app:APP --host 0.0.0.0 --port 9000 --reload"
 
-timeout /t 5 /nobreak >nul
+timeout /t 2 /nobreak >nul
 
 echo Starting Frontend...
-start "Frontend" cmd /k "cd frontend && npm install && npm run dev"
+start "Frontend" cmd /k "cd frontend && npm run dev"
 
 echo.
 echo MCP Stack started!
@@ -44,4 +50,4 @@ echo MCP Server: http://localhost:9000
 echo Corp API: http://localhost:8080
 echo.
 echo To stop: close each terminal window or run stop.bat
-pause 
+pause
