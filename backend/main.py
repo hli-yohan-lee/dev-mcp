@@ -239,8 +239,26 @@ async def get_database_content(request: DatabaseRequest):
         if request.filters:
             where_clauses = []
             for key, value in request.filters.items():
-                where_clauses.append(f"{key} = ?")
-                params.append(value)
+                if key == "role":
+                    # 역할별 필터링: 해당 역할 + 풀스택 포함
+                    if value == "backend":
+                        where_clauses.append("(role = ? OR role = 'fullstack')")
+                        params.append(value)
+                    elif value == "frontend":
+                        where_clauses.append("(role = ? OR role = 'fullstack')")
+                        params.append(value)
+                    elif value == "database":
+                        where_clauses.append("(role = ? OR role = 'fullstack')")
+                        params.append(value)
+                    elif value == "fullstack":
+                        where_clauses.append("role = ?")
+                        params.append(value)
+                    else:
+                        where_clauses.append(f"{key} = ?")
+                        params.append(value)
+                else:
+                    where_clauses.append(f"{key} = ?")
+                    params.append(value)
             if where_clauses:
                 query += " WHERE " + " AND ".join(where_clauses)
         

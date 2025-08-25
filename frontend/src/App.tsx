@@ -747,10 +747,10 @@ export default function App() {
 - GitHub: repository는 "hli-yohan-lee/dev-guide", username은 "hli-yohan-lee", password는 GitHub 토큰
 
 데이터베이스 필터링 규칙:
-- "backend" 파라미터: role이 "backend"인 사용자만 조회
-- "frontend" 파라미터: role이 "frontend"인 사용자만 조회  
+- "backend" 파라미터: role이 "backend"인 사용자 + 풀스택 개발자 조회
+- "frontend" 파라미터: role이 "frontend"인 사용자 + 풀스택 개발자 조회  
 - "fullstack" 파라미터: role이 "fullstack"인 사용자만 조회
-- "database" 파라미터: role이 "database"인 사용자만 조회
+- "database" 파라미터: role이 "database"인 사용자 + 풀스택 개발자 조회
 
 계획 형식:
 [
@@ -1178,34 +1178,116 @@ ${executionResults.map((result: any, index) => {
           <div className="tab-content">
             <div className="mcp-backend-section">
               <div className="backend-tools">
-                <h3>API 도구</h3>
-                <button 
-                  onClick={() => testAPIBackend("github", { 
-                    repository: "hli-yohan-lee/dev-guide",
-                    username: "hli-yohan-lee",
-                    password: "test"
-                  })}
-                  className="mcp-tool-button"
-                >
-                  🔗 GitHub 저장소
-                </button>
-                <button 
-                  onClick={() => testAPIBackend("pdf", { 
-                    filename: "백엔드_가이드.pdf"
-                  })}
-                  className="mcp-tool-button"
-                >
-                  📄 PDF 내용 읽기
-                </button>
-                <button 
-                  onClick={() => testAPIBackend("database", { 
-                    table: "users",
-                    filters: { role: "backend" }
-                  })}
-                  className="mcp-tool-button"
-                >
-                  🗄️ 데이터베이스 조회
-                </button>
+                <h3>API 백엔드 테스트</h3>
+                
+                <h4>📄 PDF 관련</h4>
+                <div className="tool-buttons">
+                  <button 
+                    onClick={() => testAPIBackend("pdf", { 
+                      filename: "백엔드_가이드.pdf"
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    백엔드 가이드 PDF 읽기
+                  </button>
+                  <button 
+                    onClick={() => testAPIBackend("pdf", { 
+                      filename: "프론트_가이드.pdf"
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    프론트 가이드 PDF 읽기
+                  </button>
+                  <button 
+                    onClick={() => testAPIBackend("pdf", { 
+                      filename: "디비_가이드.pdf"
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    디비 가이드 PDF 읽기
+                  </button>
+                </div>
+
+                <h4>🗄️ 데이터베이스</h4>
+                <div className="tool-buttons">
+                  <button 
+                    onClick={() => testAPIBackend("database", { 
+                      table: "users"
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    모든 사용자 조회
+                  </button>
+                  <button 
+                    onClick={() => testAPIBackend("database", { 
+                      table: "users",
+                      filters: { role: "backend" }
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    백엔드 + 풀스택 조회
+                  </button>
+                  <button 
+                    onClick={() => testAPIBackend("database", { 
+                      table: "users",
+                      filters: { role: "frontend" }
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    프론트엔드 + 풀스택 조회
+                  </button>
+                  <button 
+                    onClick={() => testAPIBackend("database", { 
+                      table: "users",
+                      filters: { role: "fullstack" }
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    풀스택만 조회
+                  </button>
+                  <button 
+                    onClick={() => testAPIBackend("database", { 
+                      table: "users",
+                      filters: { role: "database" }
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    DBA + 풀스택 조회
+                  </button>
+                  <button 
+                    onClick={() => testAPIBackend("database", { 
+                      table: "guides"
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    가이드 목록 조회
+                  </button>
+                </div>
+
+                <h4>🔗 GitHub</h4>
+                <div className="tool-buttons">
+                  <button 
+                    onClick={() => testAPIBackend("github", { 
+                      repository: "hli-yohan-lee/dev-guide",
+                      username: "hli-yohan-lee",
+                      password: githubToken
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    GitHub 저장소 조회
+                  </button>
+                  <button 
+                    onClick={() => testAPIBackend("github", { 
+                      repository: "hli-yohan-lee/dev-guide",
+                      username: "hli-yohan-lee",
+                      password: githubToken,
+                      file_path: "README.md"
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    README.md 파일 읽기
+                  </button>
+                </div>
               </div>
 
               <div className="mcp-calls-section">
@@ -1287,7 +1369,7 @@ ${executionResults.map((result: any, index) => {
                     })}
                     className="mcp-tool-button"
                   >
-                    백엔드 개발자만 조회
+                    백엔드 + 풀스택 조회
                   </button>
                   <button 
                     onClick={() => invokePureMCP("database", { 
@@ -1296,7 +1378,7 @@ ${executionResults.map((result: any, index) => {
                     })}
                     className="mcp-tool-button"
                   >
-                    프론트엔드 개발자만 조회
+                    프론트엔드 + 풀스택 조회
                   </button>
                   <button 
                     onClick={() => invokePureMCP("database", { 
@@ -1305,7 +1387,7 @@ ${executionResults.map((result: any, index) => {
                     })}
                     className="mcp-tool-button"
                   >
-                    풀스택 개발자만 조회
+                    풀스택만 조회
                   </button>
                   <button 
                     onClick={() => invokePureMCP("database", { 
@@ -1314,7 +1396,7 @@ ${executionResults.map((result: any, index) => {
                     })}
                     className="mcp-tool-button"
                   >
-                    DBA만 조회
+                    DBA + 풀스택 조회
                   </button>
                 </div>
 
