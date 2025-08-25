@@ -726,25 +726,25 @@ export default function App() {
         history: messages.map(m => ({ role: m.role, content: m.content }))
       }, null, 2)}`);
       
-      const requestData = {
-        model: "gpt-5-mini",
-        messages: [
-          {
-            role: "system",
-            content: `당신은 MCP(Model Context Protocol) Planner입니다. 
+              const requestData = {
+          model: "gpt-5-mini",
+          messages: [
+            {
+              role: "system",
+              content: `당신은 MCP(Model Context Protocol) Planner입니다. 
 
 사용자의 질문을 분석하여 실행 계획을 생성해야 합니다.
 
 사용 가능한 MCP 도구들:
-- PDF 관련: pdf (guide_type으로 백엔드/프론트/디비 가이드 선택)
-- 데이터베이스: database (role_filter로 백엔드/프론트/DBA/풀스택 선택)
-- GitHub: github (file_type으로 GIT/API 가이드 선택)
+- PDF 관련: pdf (filename으로 PDF 파일명 지정)
+- 데이터베이스: database (table과 filters로 테이블과 필터 지정)
+- GitHub: github (repository, username, password, file_path 지정)
 - 시스템 상태: health (백엔드 상태 확인)
 
 중요: 
-- guide_type은 정확히 "backend", "frontend", "database"만 사용하세요.
-- role_filter는 정확히 "backend", "frontend", "DBA", "fullstack"만 사용하세요.
-- file_type은 정확히 "GIT", "API"만 사용하세요.
+- PDF: filename은 "백엔드_가이드.pdf", "프론트_가이드.pdf", "디비_가이드.pdf" 중 선택
+- Database: table은 "users" 또는 "guides", filters는 {"role": "backend"} 형태
+- GitHub: repository는 "hli-yohan-lee/dev-guide", username은 "hli-yohan-lee", password는 GitHub 토큰
 
 계획 형식:
 [
@@ -754,11 +754,11 @@ export default function App() {
 
 예시: "GitHub 가이드와 백엔드 개발자 정보를 알려줘"
 [
-  { step: "GitHub GIT 가이드 조회", tool: "github", params: {"file_type": "GIT"} },
-  { step: "백엔드 개발자 조회", tool: "database", params: {"role_filter": "backend"} }
+  { step: "GitHub 저장소 조회", tool: "github", params: {"repository": "hli-yohan-lee/dev-guide", "username": "hli-yohan-lee", "password": "GITHUB_TOKEN"} },
+  { step: "백엔드 개발자 조회", tool: "database", params: {"table": "users", "filters": {"role": "backend"}} }
 ]
 
-주의: 파라미터 값은 정확히 영어로 입력해야 합니다!
+주의: 파라미터 값은 정확히 백엔드 API 스키마에 맞춰야 합니다!
 
 계획만 생성하고, 실제 실행은 하지 마세요.`
           },
@@ -1076,15 +1076,28 @@ ${executionResults.map((result: any, index) => {
       let result;
       switch (step.tool) {
         case 'pdf':
-          addDebugLog(`📄 PDF 도구 호출: ${JSON.stringify(step.params)}`);
-          result = await invokePureMCP('pdf', step.params);
+          // PDF API는 filename 필드가 필요
+          const pdfParams = { filename: step.params.filename || "백엔드_가이드.pdf" };
+          addDebugLog(`📄 PDF 도구 호출: ${JSON.stringify(pdfParams)}`);
+          result = await invokePureMCP('pdf', pdfParams);
           break;
         case 'database':
-          addDebugLog(`🗄️ Database 도구 호출: ${JSON.stringify(step.params)}`);
-          result = await invokePureMCP('database', step.params);
+          // Database API는 table과 filters 필드가 필요
+          const dbParams = { 
+            table: step.params.table || "users", 
+            filters: step.params.filters || {} 
+          };
+          addDebugLog(`🗄️ Database 도구 호출: ${JSON.stringify(dbParams)}`);
+          result = await invokePureMCP('database', dbParams);
           break;
         case 'github':
-          const githubParams = { ...step.params, password: githubToken };
+          // GitHub API는 repository, username, password, file_path 필드가 필요
+          const githubParams = { 
+            repository: step.params.repository || "hli-yohan-lee/dev-guide",
+            username: step.params.username || "hli-yohan-lee", 
+            password: githubToken,
+            file_path: step.params.file_path || null
+          };
           addDebugLog(`🔗 GitHub 도구 호출: ${JSON.stringify(githubParams)}`);
           result = await invokePureMCP('github', githubParams);
           break;
@@ -1306,25 +1319,29 @@ ${executionResults.map((result: any, index) => {
                     onClick={() => {
                       addDebugLog(`🔑 현재 GitHub Token: ${githubToken ? '설정됨' : '설정되지 않음'}`);
                       invokePureMCP("github", { 
-                        file_type: "GIT",
-                        password: githubToken 
+                        repository: "hli-yohan-lee/dev-guide",
+                        username: "hli-yohan-lee",
+                        password: githubToken,
+                        file_path: null
                       });
                     }}
                     className="mcp-tool-button"
                   >
-                    GitHub GIT 가이드 테스트
+                    GitHub 저장소 조회 테스트
                   </button>
                   <button 
                     onClick={() => {
                       addDebugLog(`🔑 현재 GitHub Token: ${githubToken ? '설정됨' : '설정되지 않음'}`);
                       invokePureMCP("github", { 
-                        file_type: "API",
-                        password: githubToken 
+                        repository: "hli-yohan-lee/dev-guide",
+                        username: "hli-yohan-lee",
+                        password: githubToken,
+                        file_path: "README.md"
                       });
                     }}
                     className="mcp-tool-button"
                   >
-                    GitHub API 가이드 테스트
+                    GitHub 파일 읽기 테스트
                   </button>
                 </div>
               </div>
