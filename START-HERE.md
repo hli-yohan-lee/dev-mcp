@@ -38,12 +38,12 @@ stop-all.bat
 # Windows (안전한 버전)
 start-frontend-safe.bat      # 프론트엔드
 start-mcp-server-safe.bat    # MCP 서버  
-start-corp-api-safe.bat      # 회사 API 서버
+
 
 # Linux/Mac
 cd frontend && npm install && npm run dev
 cd mcp-server && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt && python -m uvicorn app:APP --host 0.0.0.0 --port 9000 --reload
-cd corp-api && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt && python -m uvicorn app:APP --host 0.0.0.0 --port 8080 --reload
+
 ```
 
 ## 📚 상세 가이드
@@ -61,7 +61,6 @@ cd corp-api && python -m venv venv && source venv/bin/activate && pip install -r
 
 - **프론트엔드**: http://localhost:3000
 - **MCP 서버**: http://localhost:9000
-- **회사 API**: http://localhost:8080
 
 ## 🆘 문제 해결
 
@@ -75,7 +74,7 @@ cd corp-api && python -m venv venv && source venv/bin/activate && pip install -r
 fix-venv.bat
 
 # 또는 안전한 개별 시작 스크립트 사용
-start-corp-api-safe.bat
+
 start-mcp-server-safe.bat
 start-frontend-safe.bat
 ```

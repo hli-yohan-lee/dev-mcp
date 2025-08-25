@@ -1,8 +1,8 @@
 @echo off
 chcp 65001 >nul
-echo Starting Corp API Server...
 
-cd corp-api
+
+
 if not exist venv (
     echo Creating virtual environment...
     python -m venv venv

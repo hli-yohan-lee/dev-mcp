@@ -269,6 +269,15 @@ async def get_database_content(request: DatabaseRequest):
 async def health_check():
     return {"status": "healthy", "pdf_path": str(PDF_STORAGE_PATH.absolute())}
 
+@app.post("/health")
+async def health_check_post():
+    return {"ok": True, "data": {"status": "healthy", "pdf_path": str(PDF_STORAGE_PATH.absolute())}}
+
+# API 헬스체크 (프론트엔드 호출용)
+@app.post("/api/health")
+async def api_health_check():
+    return {"ok": True, "data": {"status": "healthy", "pdf_path": str(PDF_STORAGE_PATH.absolute())}}
+
 if __name__ == "__main__":
     import uvicorn
     print(f"PDF 저장 경로: {PDF_STORAGE_PATH.absolute()}")
@@ -278,4 +287,4 @@ if __name__ == "__main__":
     init_database()
     print("데이터베이스 초기화 완료")
     
-    uvicorn.run(app, host="0.0.0.0", port=9001)
+    uvicorn.run(app, host="0.0.0.0", port=9000)

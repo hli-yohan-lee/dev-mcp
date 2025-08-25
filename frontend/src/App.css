@@ -816,9 +816,52 @@ h3 {
 /* 복합 통합 섹션 */
 .combined-section {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  height: 100%;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
+  height: calc(100vh - 200px);
+  min-height: 600px;
+}
+
+.input-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.response-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mcp-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.response-content {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 1rem;
+}
+
+.mcp-calls-list {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 1rem;
 }
 
 .combined-section .mcp-section {

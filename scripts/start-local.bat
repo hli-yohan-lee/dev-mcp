@@ -5,16 +5,7 @@ echo 🚀 MCP 스택 로컬 실행 시작...
 REM 현재 스크립트 위치를 기준으로 상위 디렉토리로 이동
 cd /d "%~dp0.."
 
-REM 회사 API 서버 시작
-echo 🏢 회사 API 서버 시작 중...
-cd corp-api
-if not exist venv (
-    python -m venv venv
-)
-call venv\Scripts\activate.bat
-pip install -r requirements.txt
-start "회사 API 서버" cmd /k "python -m uvicorn app:APP --host 0.0.0.0 --port 8080"
-cd ..
+
 
 REM MCP 서버 시작
 echo 🔧 MCP 서버 시작 중...
@@ -44,7 +35,6 @@ echo.
 echo 🌐 접속 정보:
 echo   - 프론트엔드: http://localhost:3000
 echo   - MCP 서버: http://localhost:9000
-echo   - 회사 API: http://localhost:8080
 echo.
 echo 🛑 중지: 각 터미널 창을 닫거나 ./scripts/stop-local.bat
 

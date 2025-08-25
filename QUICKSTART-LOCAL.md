@@ -48,18 +48,7 @@ chmod +x scripts/start-local.sh
 
 ### 방법 2: 개별 서비스 시작
 
-#### 1. 회사 API 서버 시작
-```bash
-# Windows
-start-corp-api.bat
 
-# Linux/Mac
-cd corp-api
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python -m uvicorn app:APP --host 0.0.0.0 --port 8080 --reload
-```
 
 #### 2. MCP 서버 시작
 ```bash
@@ -89,7 +78,6 @@ npm run dev
 
 - **프론트엔드**: http://localhost:3000
 - **MCP 서버**: http://localhost:9000
-- **회사 API**: http://localhost:8080
 
 ## 🧪 테스트
 

@@ -34,7 +34,6 @@ scripts\start.bat
 
 - **프론트엔드**: http://localhost:3000
 - **MCP 서버**: http://localhost:9000/health
-- **회사 API**: http://localhost:8080/health
 
 ## 🧪 테스트
 
@@ -72,7 +71,7 @@ docker-compose logs -f
 # 특정 서비스 로그
 docker-compose logs -f frontend
 docker-compose logs -f mcp-server
-docker-compose logs -f corp-api
+
 ```
 
 ### 컨테이너 재시작

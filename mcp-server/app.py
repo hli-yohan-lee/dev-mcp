@@ -1,7 +1,6 @@
-import os, time, hmac, hashlib, json, secrets
+import os, time, hmac, hashlib, json
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-import httpx
 from dotenv import load_dotenv
 from pathlib import Path
 import PyPDF2
@@ -22,7 +21,7 @@ APP.add_middleware(
     allow_headers=["*"],
 )
 
-BASE = os.environ.get("COMPANY_API_BASE", "http://localhost:8080")
+
 HMAC_KEY = os.environ.get("HMAC_KEY", "supersecret").encode()
 MCP_ID = os.environ.get("MCP_ID","mcp")
 
@@ -142,10 +141,7 @@ def github_api_direct(repository: str, username: str, password: str, file_path: 
     except Exception as e:
         return {"ok": False, "error": f"GitHub 연결 오류: {str(e)}"}
 
-def sign(body: bytes, ts: str, nonce: str) -> str:
-    msg = ts.encode() + b"." + nonce.encode() + b"." + body
-    mac = hmac.new(HMAC_KEY, msg, hashlib.sha256).hexdigest()
-    return f"hmac-sha256={mac}"
+
 
 @APP.post("/mcp/invoke")
 async def invoke(req: Request):
@@ -153,7 +149,7 @@ async def invoke(req: Request):
     action = payload.get("action"); args = payload.get("args", {})
     
     # 백엔드 서버 호출 (프록시 역할)
-    backend_url = "http://localhost:9001"
+    backend_url = "http://localhost:9000"
     
     try:
         if action == "pdf":
@@ -174,86 +170,16 @@ async def invoke(req: Request):
                 response = await client.post(f"{backend_url}/api/database", json={"table": table, "filters": filters})
                 return response.json()
         
-        # 기타 액션들은 corp-api로 전달
+        # 기타 액션들은 지원하지 않음
         else:
-            body = json.dumps({"action":action, "args":args}, separators=(",",":")).encode()
-            ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-            nonce = secrets.token_hex(12)
-            sig = sign(body, ts, nonce)
-
-            headers = {
-                "Content-Type":"application/json",
-                "X-Actor":"mcp",
-                "X-Tool":"corp.ops",
-                "X-Action":action or "",
-                "X-Timestamp":ts,
-                "X-Nonce":nonce,
-                "X-Signature":sig,
-                "X-Client": MCP_ID,
-            }
-
-            url = f"{BASE}/dispatch"
-            async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
-                try:
-                    r = await client.post(url, content=body, headers=headers)
-                    data = r.json()
-                    return {"ok": r.status_code < 400, **data}
-                except Exception as e:
-                    return {"ok": False, "error": str(e)}
+            return {"ok": False, "error": f"지원하지 않는 액션: {action}"}
                     
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-@APP.post("/api/chat")
-async def chat(req: Request):
-    """GPT API를 통한 채팅 응답 - corp-api로 전달"""
-    try:
-        print(f"🔍 MCP 서버: 채팅 요청 수신")
-        payload = await req.json()
-        print(f"📝 요청 페이로드: {payload}")
-        
-        body = json.dumps(payload, separators=(",",":")).encode()
-        ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        nonce = secrets.token_hex(12)
-        sig = sign(body, ts, nonce)
 
-        headers = {
-            "Content-Type":"application/json",
-            "X-Actor":"mcp",
-            "X-Tool":"corp.ops",
-            "X-Action":"CHAT",
-            "X-Timestamp":ts,
-            "X-Nonce":nonce,
-            "X-Signature":sig,
-            "X-Client": MCP_ID,
-        }
 
-        print(f"🔐 인증 헤더 생성 완료: {headers}")
 
-        # corp-api의 채팅 엔드포인트로 전달
-        url = f"{BASE}/dispatch"
-        print(f"🌐 corp-api 호출: {url}")
-        
-        async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
-            try:
-                r = await client.post(url, content=body, headers=headers)
-                print(f"📡 corp-api 응답 상태: {r.status_code}")
-                print(f"📡 corp-api 응답 헤더: {dict(r.headers)}")
-                
-                data = r.json()
-                print(f"✅ corp-api 응답 데이터: {data}")
-                
-                result = {"ok": r.status_code < 400, **data}
-                print(f"🎯 최종 응답: {result}")
-                return result
-                
-            except Exception as e:
-                print(f"💥 corp-api 호출 에러: {str(e)}")
-                return {"ok": False, "error": str(e)}
-                
-    except Exception as e:
-        print(f"💥 MCP 서버 채팅 에러: {str(e)}")
-        return {"ok": False, "error": str(e)}
 
 @APP.get("/health")
 async def health():

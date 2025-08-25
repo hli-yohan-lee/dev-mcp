@@ -397,7 +397,7 @@ export default function App() {
     try {
       addDebugLog(`🔧 API 백엔드 테스트: ${endpoint}`);
       
-      const response = await fetch(`http://localhost:9001/api/${endpoint}`, {
+      const response = await fetch(`http://localhost:9000/api/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -467,8 +467,8 @@ export default function App() {
     try {
       addDebugLog(`🔧 백엔드 API 직접 호출: ${action}`);
       
-      // 백엔드 서버로 직접 호출 (포트 9001)
-      const response = await fetch(`http://localhost:9001/api/${action}`, {
+      // 백엔드 서버로 직접 호출 (포트 9000)
+      const response = await fetch(`http://localhost:9000/api/${action}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(args),
@@ -533,12 +533,163 @@ export default function App() {
     }
   };
 
-  // 4번 화면: 복합 통합 (기존 기능)
+  // MCP 도구 분석 및 자동 사용 함수
+  const analyzeAndUseMcpTools = async (gptResponse: string, userPrompt: string) => {
+    const results: Array<{
+      action: string;
+      status: "success" | "error";
+      summary?: string;
+      error?: string;
+    }> = [];
+    
+    addDebugLog(`🔍 MCP 도구 사용 필요성 분석 시작`);
+    
+    // 사용자 질문과 GPT 응답을 분석하여 필요한 MCP 도구 결정
+    const promptLower = userPrompt.toLowerCase();
+    const responseLower = gptResponse.toLowerCase();
+    
+    // PDF 관련 질문이 있는지 확인
+    if (promptLower.includes('pdf') || promptLower.includes('문서') || 
+        promptLower.includes('백엔드') || promptLower.includes('프론트') || promptLower.includes('디비')) {
+      addDebugLog(`📄 PDF 관련 질문 감지 - 백엔드 가이드 PDF 읽기 시도`);
+      
+      try {
+        const pdfResult = await invokePureMCP("pdf", { filename: "백엔드_가이드.pdf" });
+        if (pdfResult && pdfResult.status === "success") {
+          results.push({
+            action: "PDF 읽기 (백엔드 가이드)",
+            status: "success",
+            summary: `파일: ${pdfResult.response?.data?.filename}, 길이: ${pdfResult.response?.data?.length}자`
+          });
+        } else {
+          results.push({
+            action: "PDF 읽기 (백엔드 가이드)",
+            status: "error",
+            error: pdfResult?.response?.error || "알 수 없는 오류"
+          });
+        }
+      } catch (error: any) {
+        results.push({
+          action: "PDF 읽기 (백엔드 가이드)",
+          status: "error",
+          error: error.message || "PDF 읽기 실패"
+        });
+      }
+    }
+    
+    // 데이터베이스 관련 질문이 있는지 확인
+    if (promptLower.includes('데이터베이스') || promptLower.includes('db') || 
+        promptLower.includes('사용자') || promptLower.includes('가이드') ||
+        promptLower.includes('테이블')) {
+      addDebugLog(`🗄️ 데이터베이스 관련 질문 감지 - 사용자 테이블 조회 시도`);
+      
+      try {
+        const dbResult = await invokePureMCP("database", { table: "users" });
+        if (dbResult && dbResult.status === "success") {
+          results.push({
+            action: "데이터베이스 조회 (사용자)",
+            status: "success",
+            summary: `테이블: ${dbResult.response?.data?.table}, 레코드: ${dbResult.response?.data?.count}개`
+          });
+        } else {
+          results.push({
+            action: "데이터베이스 조회 (사용자)",
+            status: "error",
+            error: dbResult?.response?.error || "알 수 없는 오류"
+          });
+        }
+      } catch (error: any) {
+        results.push({
+          action: "데이터베이스 조회 (사용자)",
+          status: "error",
+          error: error.message || "데이터베이스 조회 실패"
+        });
+      }
+    }
+    
+    // GitHub 관련 질문이 있는지 확인
+    if (promptLower.includes('github') || promptLower.includes('git') || 
+        promptLower.includes('저장소') || promptLower.includes('소스코드')) {
+      addDebugLog(`🔗 GitHub 관련 질문 감지 - 저장소 정보 조회 시도`);
+      
+      try {
+        const githubResult = await invokePureMCP("github", { 
+          repository: "hli-yohan-lee/dev-guide",
+          username: "hli-yohan-lee",
+          password: "test"
+        });
+        if (githubResult && githubResult.status === "success") {
+          results.push({
+            action: "GitHub 저장소 조회",
+            status: "success",
+            summary: `저장소: ${githubResult.response?.data?.repository}, 파일 수: ${githubResult.response?.data?.files?.length || 0}개`
+          });
+        } else {
+          results.push({
+            action: "GitHub 저장소 조회",
+            status: "error",
+            error: githubResult?.response?.error || "알 수 없는 오류"
+          });
+        }
+      } catch (error: any) {
+        results.push({
+          action: "GitHub 저장소 조회",
+          status: "error",
+          error: error.message || "GitHub 조회 실패"
+        });
+      }
+    }
+    
+    // 시스템 상태 관련 질문이 있는지 확인
+    if (promptLower.includes('상태') || promptLower.includes('health') || 
+        promptLower.includes('서버') || promptLower.includes('백엔드')) {
+      addDebugLog(`🏥 시스템 상태 관련 질문 감지 - 백엔드 상태 확인 시도`);
+      
+      try {
+        const healthResult = await invokePureMCP("health", {});
+        if (healthResult && healthResult.status === "success") {
+          results.push({
+            action: "백엔드 상태 확인",
+            status: "success",
+            summary: `상태: ${healthResult.response?.data?.status}`
+          });
+        } else {
+          results.push({
+            action: "백엔드 상태 확인",
+            status: "error",
+            error: healthResult?.response?.error || "알 수 없는 오류"
+          });
+        }
+      } catch (error: any) {
+        results.push({
+          action: "백엔드 상태 확인",
+          status: "error",
+          error: error.message || "상태 확인 실패"
+        });
+      }
+    }
+    
+    addDebugLog(`✅ MCP 도구 분석 완료 - ${results.length}개 도구 실행됨`);
+    return results;
+  };
+
+  // 4번 화면: 복합 통합 (OpenAI + MCP 자동 연동)
   const handleCombinedGPT = async () => {
     if (!prompt.trim() || !apiKey.trim()) return;
     
     // API 키 검증
     const cleanApiKey = apiKey.trim();
+    if (cleanApiKey.length < 10) {
+      addDebugLog(`❌ API 키가 너무 짧습니다: ${cleanApiKey.length}자`);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "❌ API 키가 유효하지 않습니다. 올바른 OpenAI API 키를 입력해주세요.",
+        timestamp: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -551,83 +702,141 @@ export default function App() {
     setPrompt("");
     setIsLoading(true);
 
+    // 스트리밍 응답을 위한 메시지 생성
+    const streamingMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: "",
+      timestamp: new Date().toISOString(),
+    };
+
+    setMessages(prev => [...prev, streamingMessage]);
+
     try {
-      addDebugLog("🚀 복합 GPT 호출 시작");
+      addDebugLog("🚀 복합 GPT 호출 시작 (OpenAI API + MCP 자동 연동)");
       addDebugLog(`📤 요청 데이터: ${JSON.stringify({
         message: prompt,
         history: messages.map(m => ({ role: m.role, content: m.content }))
       }, null, 2)}`);
       
-      const response = await fetch("http://localhost:9000/api/chat", {
+      const requestData = {
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: `당신은 MCP(Model Context Protocol) 도구들을 사용할 수 있는 AI 어시스턴트입니다. 
+사용자의 질문에 답변할 때, 필요한 정보가 있다면 MCP 도구를 사용하여 자동으로 가져와야 합니다.
+
+사용 가능한 MCP 도구들:
+- PDF 관련: pdf (파일명으로 PDF 내용 읽기)
+- 데이터베이스: database (테이블명으로 데이터 조회)
+- GitHub: github (저장소 정보 및 파일 내용)
+- 시스템 상태: health (백엔드 상태 확인)
+
+사용자의 질문을 분석하여 필요한 MCP 도구를 자동으로 호출하고, 그 결과를 포함하여 답변하세요.
+답변은 친근하고 도움이 되는 톤으로 작성하세요.`
+          },
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+          { role: "user", content: prompt }
+        ],
+        stream: false
+      };
+      
+      addDebugLog(`📤 OpenAI API 요청 데이터: ${JSON.stringify(requestData, null, 2)}`);
+      
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${cleanApiKey}`,
         },
-        body: JSON.stringify({
-          message: prompt,
-          history: messages.map(m => ({ role: m.role, content: m.content }))
-        }),
+        body: JSON.stringify(requestData),
       });
 
       addDebugLog(`📡 HTTP 응답 상태: ${response.status} ${response.statusText}`);
 
       if (response.ok) {
         const data = await response.json();
+        addDebugLog(`✅ OpenAI API 응답 수신`);
         
-        // 전체 응답 구조를 상세히 분석
-        analyzeResponseStructure(data, "복합 GPT 응답");
-        
-        // JSON 형태로도 로깅 (백업용)
-        addDebugLog(`📊 JSON 형태 응답:`);
-        addDebugLog(`${JSON.stringify(data, null, 2)}`);
-        
-        // 응답 내용 확인 및 처리
-        addDebugLog(`🔍 응답 내용 검증:`);
-        
-        // 백엔드 에러 응답 확인
-        if (data.ok === false && data.error) {
-          addDebugLog(`❌ 백엔드 에러 응답 감지: ${data.error}`);
-          const responseContent = `서버 에러: ${data.error}`;
+        // OpenAI API 에러 응답 확인
+        if (data.error) {
+          addDebugLog(`❌ OpenAI API 에러 응답 감지: ${JSON.stringify(data.error)}`);
+          const errorMessage = `OpenAI API 에러: ${data.error.message || data.error.type || '알 수 없는 에러'}`;
           
-          const assistantMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            role: "assistant",
-            content: responseContent,
-            timestamp: new Date().toISOString(),
-          };
-          
-          addDebugLog(`💬 에러 메시지 생성 완료: ID=${assistantMessage.id}`);
-          setMessages(prev => [...prev, assistantMessage]);
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === streamingMessage.id 
+                ? { ...msg, content: errorMessage }
+                : msg
+            )
+          );
           return;
         }
         
-        // 정상 응답 확인
-        const responseExists = data.response !== undefined && data.response !== null;
-        const responseNotEmpty = responseExists && data.response.trim() !== "";
+        // OpenAI API 정상 응답 확인
+        const hasChoices = data.choices && data.choices.length > 0;
+        const hasMessage = hasChoices && data.choices[0].message;
+        const hasContent = hasMessage && data.choices[0].message.content;
+        const contentNotEmpty = hasContent && data.choices[0].message.content.trim() !== "";
         
-        addDebugLog(`- 응답 존재 여부: ${responseExists}`);
-        addDebugLog(`- 응답 비어있지 않음: ${responseNotEmpty}`);
-        
-        const responseContent = (!responseExists || !responseNotEmpty) 
-          ? "응답을 받았지만 내용이 비어있습니다. 다시 시도해보세요."
-          : data.response;
-        
-        if (!responseExists || !responseNotEmpty) {
-          addDebugLog(`⚠️ 빈 응답 감지 - 대체 메시지 사용`);
-        } else {
-          addDebugLog(`✅ 정상 응답 처리`);
+        if (!hasChoices || !hasMessage || !hasContent || !contentNotEmpty) {
+          const emptyResponseMessage = "OpenAI에서 응답을 받았지만 내용이 비어있습니다. 다시 시도해보세요.";
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === streamingMessage.id 
+                ? { ...msg, content: emptyResponseMessage }
+                : msg
+            )
+          );
+          return;
         }
         
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: responseContent,
-          timestamp: new Date().toISOString(),
-        };
+        // 2단계: GPT 응답에서 MCP 도구 사용 필요성 분석
+        const gptResponse = data.choices[0].message.content;
+        addDebugLog(`🤖 GPT 초기 응답: ${gptResponse.substring(0, 100)}...`);
         
-        addDebugLog(`💬 메시지 생성 완료: ID=${assistantMessage.id}, 길이=${responseContent.length}자`);
-        setMessages(prev => [...prev, assistantMessage]);
+        // MCP 도구 사용이 필요한지 판단
+        const needsMcpTools = await analyzeAndUseMcpTools(gptResponse, prompt);
+        
+        // 3단계: 최종 응답 생성 (MCP 도구 결과 포함)
+        let finalResponse = gptResponse;
+        if (needsMcpTools.length > 0) {
+          finalResponse += "\n\n🔧 **MCP 도구 실행 결과:**\n";
+          needsMcpTools.forEach((result, index) => {
+            finalResponse += `\n**${index + 1}. ${result.action}**\n`;
+            if (result.status === "success") {
+              finalResponse += `✅ 성공: ${result.summary}\n`;
+            } else {
+              finalResponse += `❌ 실패: ${result.error}\n`;
+            }
+          });
+        }
+        
+        // 스트리밍 효과로 최종 응답 표시
+        addDebugLog(`🎬 최종 응답 스트리밍 시작 - 총 ${finalResponse.length}자`);
+        let currentText = "";
+        
+        for (let i = 0; i < finalResponse.length; i++) {
+          currentText += finalResponse[i];
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === streamingMessage.id 
+                ? { ...msg, content: currentText }
+                : msg
+            )
+          );
+          
+          // 진행률 로깅 (10% 단위)
+          if (i % Math.ceil(finalResponse.length / 10) === 0) {
+            const progress = Math.round((i / finalResponse.length) * 100);
+            addDebugLog(`📈 스트리밍 진행률: ${progress}% (${i}/${finalResponse.length}자)`);
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, 20)); // 20ms 딜레이
+        }
+        
+        addDebugLog(`✅ 복합 통합 스트리밍 완료 - 총 ${finalResponse.length}자 표시됨`);
       } else {
         // HTTP 에러 처리
         let errorMessage = "";
@@ -960,6 +1169,7 @@ export default function App() {
         return (
           <div className="tab-content">
             <div className="combined-section">
+              {/* 왼쪽: 질문 입력 */}
               <div className="input-section">
                 <h3>GPT 채팅</h3>
                 <textarea
@@ -977,42 +1187,101 @@ export default function App() {
                 </button>
               </div>
 
+              {/* 가운데: LLM 답변 출력 */}
+              <div className="response-section">
+                <h3>GPT 답변 + MCP 도구 결과</h3>
+                <div className="response-content">
+                  {messages.length > 0 ? (
+                    <div className="current-response">
+                      {messages.filter(m => m.role === 'assistant').map((message, index) => (
+                        <div key={message.id} className="assistant-response">
+                          {index > 0 && <hr style={{margin: '1rem 0', border: '1px solid #e2e8f0'}} />}
+                          <div className="response-header">
+                            <span className="response-role">🤖 GPT 답변</span>
+                            <span className="response-time">
+                              {new Date(message.timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <div className="response-text">
+                            {message.content}
+                          </div>
+                        </div>
+                      ))}
+                      {isLoading && (
+                        <div className="loading-indicator">
+                          <div className="typing-indicator">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </div>
+                          <p>AI가 생각하고 있습니다...</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="no-response">
+                      <p>아직 답변이 없습니다.</p>
+                      <p>질문을 입력하고 전송해보세요.</p>
+                      <p>AI가 자동으로 필요한 정보를 가져와서 답변합니다!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 오른쪽: MCP 호출 내역 */}
               <div className="mcp-section">
-                <h3>MCP 도구</h3>
-                <button 
-                  onClick={() => invokePureMCP("PDF_METADATA", { 
-                    doc_ref: { 
-                      type: "GITLAB", 
-                      project_path: "corp/policies", 
-                      path: "2025/AnnexA.pdf", 
-                      ref: "v2025.08" 
-                    } 
-                  })}
-                  className="mcp-tool-button"
-                >
-                  📄 PDF 메타데이터
-                </button>
-                <button 
-                  onClick={() => invokePureMCP("PDF_TEXT", { 
-                    doc_ref: { 
-                      type: "GITLAB", 
-                      project_path: "corp/policies", 
-                      path: "2025/AnnexA.pdf", 
-                      ref: "v2025.08" 
-                    } 
-                  })}
-                  className="mcp-tool-button"
-                >
-                  📝 PDF 텍스트 추출
-                </button>
-                <button 
-                  onClick={() => invokePureMCP("GITLAB_GUIDE", { 
-                    project: "corp/policies" 
-                  })}
-                  className="mcp-tool-button"
-                >
-                  🚀 GitLab 가이드
-                </button>
+                <h3>🔧 MCP 도구 자동 실행 내역</h3>
+                {mcpCalls.length > 0 ? (
+                  <div className="mcp-calls-list">
+                    {mcpCalls.slice(0, 10).map((call) => (
+                      <div 
+                        key={call.id} 
+                        className={`mcp-call-item ${call.status}`}
+                        onClick={() => setSelectedMcpCall(call)}
+                      >
+                        <div className="call-header">
+                          <span className="call-action">{call.action}</span>
+                          <span className={`call-status ${call.status}`}>
+                            {call.status === "success" ? "✅" : "❌"}
+                          </span>
+                          <span className="call-time">
+                            {new Date(call.timestamp).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <div className="call-preview">
+                          {call.status === "success" 
+                            ? `✅ 성공 - ${call.response?.data ? '데이터 수신' : '응답 완료'}`
+                            : `❌ 오류: ${call.response?.error || '알 수 없는 오류'}`
+                          }
+                        </div>
+                        {call.status === "success" && call.response?.data && (
+                          <div className="call-data-preview">
+                            <small>
+                              {call.action === "pdf" && `파일: ${call.response.data.filename}, 길이: ${call.response.data.length}자`}
+                              {call.action === "database" && `테이블: ${call.response.data.table}, 레코드: ${call.response.data.count}개`}
+                              {call.action === "health" && `상태: ${call.response.data.status}`}
+                              {call.action === "github" && `저장소: ${call.response.data.repository}`}
+                            </small>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="no-calls">
+                    <p>아직 MCP 도구 실행이 없습니다.</p>
+                    <p>GPT 채팅을 시작하면 AI가 자동으로 필요한 정보를 가져옵니다!</p>
+                    <div className="mcp-tools-info">
+                      <h4>🛠️ 사용 가능한 MCP 도구들:</h4>
+                      <ul>
+                        <li>📄 PDF 문서 읽기</li>
+                        <li>🗄️ 데이터베이스 조회</li>
+                        <li>🔗 GitHub 저장소 정보</li>
+                        <li>🏥 시스템 상태 확인</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

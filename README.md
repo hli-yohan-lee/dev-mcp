@@ -28,13 +28,7 @@ MCP(Model Context Protocol)와 GPT를 통합한 개발 및 테스트 대시보�
 
 ### 1. 의존성 설치
 
-#### Corp-API 서버
-```bash
-cd corp-api
-python -m venv venv
-venv\Scripts\activate  # Windows
-pip install fastapi uvicorn python-dotenv openai httpx
-```
+
 
 #### MCP 서버
 ```bash
@@ -52,11 +46,7 @@ npm install
 
 ### 2. 환경 변수 설정
 
-#### Corp-API (.env 파일)
-```env
-HMAC_KEY=supersecret
-OPENAI_API_KEY=your_openai_api_key_here
-```
+
 
 #### MCP 서버 (env.txt 파일)
 ```env
@@ -74,10 +64,7 @@ MCP_ID=mcp
 
 #### 수동 실행
 ```bash
-# Corp-API 서버
-cd corp-api
-venv\Scripts\activate
-uvicorn app:APP --host 0.0.0.0 --port 8080 --reload
+
 
 # MCP 서버
 cd mcp-server
@@ -91,7 +78,6 @@ npm run dev
 
 ## 🌐 접속 주소
 
-- **Corp-API**: http://localhost:8080
 - **MCP Server**: http://localhost:9000
 - **Frontend**: http://localhost:3000
 
@@ -113,7 +99,6 @@ npm run dev
 
 ```
 dev-mcp/
-├── corp-api/          # 회사 API 서버 (GPT API 포함)
 ├── mcp-server/        # MCP 서버 (프록시)
 ├── frontend/          # React 프론트엔드
 ├── gateway/           # Nginx 게이트웨이
@@ -156,7 +141,7 @@ dev-mcp/
 - 서버 상태 확인
 
 ### MCP 호출 실패
-- corp-api 서버가 실행 중인지 확인
+- MCP 서버가 실행 중인지 확인
 - HMAC 키가 일치하는지 확인
 - 네트워크 연결 상태 확인
 

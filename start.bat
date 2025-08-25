@@ -8,6 +8,16 @@ taskkill /F /IM node.exe >nul 2>&1
 taskkill /F /IM python.exe >nul 2>&1
 taskkill /F /IM java.exe >nul 2>&1
 
+REM Activate conda environment
+echo Activating conda environment: mcp_p311...
+call conda activate mcp_p311
+if errorlevel 1 (
+    echo Failed to activate conda environment: mcp_p311
+    echo Please make sure the environment exists
+    pause
+    exit /b 1
+)
+
 REM Check Python
 python --version >nul 2>&1
 if errorlevel 1 (
@@ -24,18 +34,18 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Starting Corp API Server...
-start "Corp API" cmd /k "cd corp-api && python -m uvicorn app:APP --host 0.0.0.0 --port 8080 --reload"
+
+
 
 timeout /t 2 /nobreak >nul
 
 echo Starting Backend Server...
-start "Backend Server" cmd /k "cd backend && python main.py"
+start "Backend Server" cmd /k "cd backend && conda activate mcp_p311 && python main.py"
 
 timeout /t 2 /nobreak >nul
 
 echo Starting MCP Server...
-start "MCP Server" cmd /k "cd mcp-server && set COMPANY_API_BASE=http://localhost:8080 && set HMAC_KEY=supersecret && set MCP_ID=mcp-invest && python -m uvicorn app:APP --host 0.0.0.0 --port 9000 --reload"
+start "MCP Server" cmd /k "cd mcp-server && conda activate mcp_p311 && set COMPANY_API_BASE=http://localhost:8080 && set HMAC_KEY=supersecret && set MCP_ID=mcp && python -m uvicorn app:APP --host 0.0.0.0 --port 9001 --reload"
 
 timeout /t 2 /nobreak >nul
 
@@ -45,8 +55,8 @@ start "Frontend" cmd /k "cd frontend && npm run dev"
 echo.
 echo MCP Stack started!
 echo Frontend: http://localhost:3000
-echo Backend Server: http://localhost:9001
-echo MCP Server: http://localhost:9000
+echo Backend Server: http://localhost:9000
+echo MCP Server: http://localhost:9001
 echo Corp API: http://localhost:8080
 echo.
 echo To stop: close each terminal window or run stop.bat

@@ -17,7 +17,6 @@ echo.
 echo 🌐 접속 정보:
 echo   - 프론트엔드: http://localhost:3000
 echo   - MCP 서버: http://localhost:9000
-echo   - 회사 API: http://localhost:8080
 echo   - 게이트웨이: https://localhost:8443
 echo   - Redis: localhost:6379
 echo.

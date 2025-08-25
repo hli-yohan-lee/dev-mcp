@@ -4,7 +4,7 @@ echo "🚀 MCP 스택 로컬 실행 시작..."
 
 # 회사 API 서버 시작
 echo "🏢 회사 API 서버 시작 중..."
-cd corp-api
+
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -31,7 +31,7 @@ FRONTEND_PID=$!
 cd ..
 
 # PID 저장
-echo $CORP_API_PID > .corp-api.pid
+
 echo $MCP_SERVER_PID > .mcp-server.pid
 echo $FRONTEND_PID > .frontend.pid
 
