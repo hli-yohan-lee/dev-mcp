@@ -746,16 +746,26 @@ export default function App() {
 - Database: table은 "users" 또는 "guides", filters는 {"role": "backend"} 형태
 - GitHub: repository는 "hli-yohan-lee/dev-guide", username은 "hli-yohan-lee", password는 GitHub 토큰
 
+데이터베이스 필터링 규칙:
+- "backend" 파라미터: role이 "backend"인 사용자만 조회
+- "frontend" 파라미터: role이 "frontend"인 사용자만 조회  
+- "fullstack" 파라미터: role이 "fullstack"인 사용자만 조회
+- "database" 파라미터: role이 "database"인 사용자만 조회
+
 계획 형식:
 [
   { step: "단계명", tool: "도구명", params: {파라미터} },
   ...
 ]
 
-예시: "GitHub 가이드와 백엔드 개발자 정보를 알려줘"
+예시: "백엔드 개발자 정보를 알려줘"
 [
-  { step: "GitHub 저장소 조회", tool: "github", params: {"repository": "hli-yohan-lee/dev-guide", "username": "hli-yohan-lee", "password": "GITHUB_TOKEN"} },
   { step: "백엔드 개발자 조회", tool: "database", params: {"table": "users", "filters": {"role": "backend"}} }
+]
+
+예시: "풀스택 개발자 정보를 알려줘"
+[
+  { step: "풀스택 개발자 조회", tool: "database", params: {"table": "users", "filters": {"role": "fullstack"}} }
 ]
 
 주의: 파라미터 값은 정확히 백엔드 API 스키마에 맞춰야 합니다!
@@ -1262,7 +1272,7 @@ ${executionResults.map((result: any, index) => {
                     onClick={() => invokePureMCP("database", { table: "users" })}
                     className="mcp-tool-button"
                   >
-                    사용자 목록 조회
+                    모든 사용자 조회
                   </button>
                   <button 
                     onClick={() => invokePureMCP("database", { table: "guides" })}
@@ -1278,6 +1288,33 @@ ${executionResults.map((result: any, index) => {
                     className="mcp-tool-button"
                   >
                     백엔드 개발자만 조회
+                  </button>
+                  <button 
+                    onClick={() => invokePureMCP("database", { 
+                      table: "users", 
+                      filters: { role: "frontend" } 
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    프론트엔드 개발자만 조회
+                  </button>
+                  <button 
+                    onClick={() => invokePureMCP("database", { 
+                      table: "users", 
+                      filters: { role: "fullstack" } 
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    풀스택 개발자만 조회
+                  </button>
+                  <button 
+                    onClick={() => invokePureMCP("database", { 
+                      table: "users", 
+                      filters: { role: "database" } 
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    DBA만 조회
                   </button>
                 </div>
 
