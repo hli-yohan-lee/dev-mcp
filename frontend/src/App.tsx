@@ -28,14 +28,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMcpCall, setSelectedMcpCall] = useState<MCPCall | null>(null);
   
-  // MCP 파라미터 입력 상태
-  const [mcpParams, setMcpParams] = useState({
-    projectPath: "corp/policies",
-    pdfPath: "2025/AnnexA.pdf",
-    pdfRef: "v2025.08",
-    project: "corp/policies"
-  });
-
   // 디버그 로그 상태
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
@@ -470,15 +462,16 @@ export default function App() {
     }
   };
 
-  // 3번 화면: 순수 MCP 호출
+  // 3번 화면: 순수 MCP 호출 (백엔드 API 직접 호출)
   const invokePureMCP = async (action: string, args: any) => {
     try {
-      addDebugLog(`🔧 순수 MCP 호출: ${action}`);
+      addDebugLog(`🔧 백엔드 API 직접 호출: ${action}`);
       
-      const response = await fetch(`http://localhost:9000/mcp/invoke`, {
+      // 백엔드 서버로 직접 호출 (포트 9001)
+      const response = await fetch(`http://localhost:9001/api/${action}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, args }),
+        body: JSON.stringify(args),
       });
 
       if (!response.ok) {
@@ -486,22 +479,22 @@ export default function App() {
         let errorMessage = "";
         switch (response.status) {
           case 400:
-            errorMessage = "잘못된 MCP 요청입니다. 파라미터를 확인해주세요.";
+            errorMessage = "잘못된 요청입니다. 파라미터를 확인해주세요.";
             break;
           case 404:
-            errorMessage = "MCP 엔드포인트를 찾을 수 없습니다. 서버 설정을 확인해주세요.";
+            errorMessage = "API 엔드포인트를 찾을 수 없습니다.";
             break;
           case 500:
-            errorMessage = "MCP 서버 내부 오류가 발생했습니다.";
+            errorMessage = "백엔드 서버 내부 오류가 발생했습니다.";
             break;
           default:
-            errorMessage = `MCP 서버 오류 (HTTP ${response.status})`;
+            errorMessage = `백엔드 서버 오류 (HTTP ${response.status})`;
         }
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      addDebugLog(`✅ 순수 MCP 응답: ${JSON.stringify(data).substring(0, 100)}...`);
+      addDebugLog(`✅ 백엔드 API 응답: ${JSON.stringify(data).substring(0, 100)}...`);
       
       const mcpCall: MCPCall = {
         id: Date.now().toString(),
@@ -515,14 +508,14 @@ export default function App() {
       setMcpCalls(prev => [mcpCall, ...prev]);
       return mcpCall;
     } catch (error: any) {
-      addDebugLog(`💥 순수 MCP 에러: ${error.message}`);
+      addDebugLog(`💥 백엔드 API 호출 에러: ${error.message}`);
       
       // 네트워크 에러 처리
       let userFriendlyMessage = "";
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        userFriendlyMessage = "MCP 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.";
+        userFriendlyMessage = "백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.";
       } else if (error.message.includes('Failed to fetch')) {
-        userFriendlyMessage = "MCP 서버 연결에 실패했습니다.";
+        userFriendlyMessage = "백엔드 서버 연결에 실패했습니다.";
       } else {
         userFriendlyMessage = error.message;
       }
@@ -836,84 +829,129 @@ export default function App() {
       case "mcp-pure":
         return (
           <div className="tab-content">
-            <div className="mcp-backend-section">
-              <div className="mcp-params">
-                <h3>파라미터 설정</h3>
-                <div className="param-group">
-                  <label>프로젝트 경로:</label>
-                  <input
-                    type="text"
-                    value={mcpParams.projectPath}
-                    onChange={(e) => setMcpParams(prev => ({...prev, projectPath: e.target.value}))}
-                    placeholder="corp/policies"
-                  />
+            <div className="mcp-pure-section">
+              <div className="mcp-tools">
+                <h4>📄 PDF 관련</h4>
+                <div className="tool-buttons">
+                  <button 
+                    onClick={() => invokePureMCP("pdf", { filename: "백엔드_가이드.pdf" })}
+                    className="mcp-tool-button"
+                  >
+                    백엔드 가이드 PDF 읽기
+                  </button>
+                  <button 
+                    onClick={() => invokePureMCP("pdf", { filename: "프론트_가이드.pdf" })}
+                    className="mcp-tool-button"
+                  >
+                    프론트 가이드 PDF 읽기
+                  </button>
+                  <button 
+                    onClick={() => invokePureMCP("pdf", { filename: "디비_가이드.pdf" })}
+                    className="mcp-tool-button"
+                  >
+                    디비 가이드 PDF 읽기
+                  </button>
                 </div>
-                <div className="param-group">
-                  <label>PDF 경로:</label>
-                  <input
-                    type="text"
-                    value={mcpParams.pdfPath}
-                    onChange={(e) => setMcpParams(prev => ({...prev, pdfPath: e.target.value}))}
-                    placeholder="2025/AnnexA.pdf"
-                  />
+
+                <h4>🗄️ 데이터베이스</h4>
+                <div className="tool-buttons">
+                  <button 
+                    onClick={() => invokePureMCP("database", { table: "users" })}
+                    className="mcp-tool-button"
+                  >
+                    사용자 목록 조회
+                  </button>
+                  <button 
+                    onClick={() => invokePureMCP("database", { table: "guides" })}
+                    className="mcp-tool-button"
+                  >
+                    가이드 목록 조회
+                  </button>
+                  <button 
+                    onClick={() => invokePureMCP("database", { 
+                      table: "users", 
+                      filters: { role: "backend" } 
+                    })}
+                    className="mcp-tool-button"
+                  >
+                    백엔드 개발자만 조회
+                  </button>
                 </div>
-                <div className="param-group">
-                  <label>PDF 참조:</label>
-                  <input
-                    type="text"
-                    value={mcpParams.pdfRef}
-                    onChange={(e) => setMcpParams(prev => ({...prev, pdfRef: e.target.value}))}
-                    placeholder="v2025.08"
-                  />
-                </div>
-                <div className="param-group">
-                  <label>GitLab 프로젝트:</label>
-                  <input
-                    type="text"
-                    value={mcpParams.project}
-                    onChange={(e) => setMcpParams(prev => ({...prev, project: e.target.value}))}
-                    placeholder="corp/policies"
-                  />
+
+                <h4>📊 시스템 상태</h4>
+                <div className="tool-buttons">
+                  <button 
+                    onClick={() => invokePureMCP("health", {})}
+                    className="mcp-tool-button"
+                  >
+                    백엔드 상태 확인
+                  </button>
                 </div>
               </div>
 
-              <div className="mcp-tools">
-                <h3>MCP 도구</h3>
-                <button 
-                  onClick={() => invokePureMCP("PDF_METADATA", { 
-                    doc_ref: { 
-                      type: "GITLAB", 
-                      project_path: mcpParams.projectPath, 
-                      path: mcpParams.pdfPath, 
-                      ref: mcpParams.pdfRef 
-                    } 
-                  })}
-                  className="mcp-tool-button"
-                >
-                  📄 PDF 메타데이터
-                </button>
-                <button 
-                  onClick={() => invokePureMCP("PDF_TEXT", { 
-                    doc_ref: { 
-                      type: "GITLAB", 
-                      project_path: mcpParams.projectPath, 
-                      path: mcpParams.pdfPath, 
-                      ref: mcpParams.pdfRef 
-                    } 
-                  })}
-                  className="mcp-tool-button"
-                >
-                  📝 PDF 텍스트 추출
-                </button>
-                <button 
-                  onClick={() => invokePureMCP("GITLAB_GUIDE", { 
-                    project: mcpParams.project 
-                  })}
-                  className="mcp-tool-button"
-                >
-                  🚀 GitLab 가이드
-                </button>
-              </div>
+              {mcpCalls.length > 0 && (
+                <div className="mcp-results">
+                  <h4>📋 MCP 호출 결과</h4>
+                  <div className="mcp-calls-list">
+                    {mcpCalls.slice(0, 5).map((call) => (
+                      <div 
+                        key={call.id} 
+                        className={`mcp-call-item ${call.status}`}
+                        onClick={() => setSelectedMcpCall(call)}
+                      >
+                        <div className="call-header">
+                          <span className="call-action">{call.action}</span>
+                          <span className="call-status">{call.status}</span>
+                          <span className="call-time">
+                            {new Date(call.timestamp).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <div className="call-preview">
+                          {call.status === "success" 
+                            ? `✅ 성공 - ${call.response?.data ? '데이터 수신' : '응답 완료'}`
+                            : `❌ 오류: ${call.response?.error || '알 수 없는 오류'}`
+                          }
+                        </div>
+                        {call.status === "success" && call.response?.data && (
+                          <div className="call-data-preview">
+                            <small>
+                              {call.action === "pdf" && `파일: ${call.response.data.filename}, 길이: ${call.response.data.length}자`}
+                              {call.action === "database" && `테이블: ${call.response.data.table}, 레코드: ${call.response.data.count}개`}
+                              {call.action === "health" && `상태: ${call.response.data.status}`}
+                            </small>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* MCP 호출 상세보기 */}
+              {selectedMcpCall && (
+                <div className="mcp-detail-overlay" onClick={() => setSelectedMcpCall(null)}>
+                  <div className="mcp-detail-section" onClick={(e) => e.stopPropagation()}>
+                    <button className="close-button" onClick={() => setSelectedMcpCall(null)}>×</button>
+                    <h3>MCP 호출 상세보기</h3>
+                    <div className="detail-content">
+                      <div className="detail-section">
+                        <h4>📤 요청 정보</h4>
+                        <p><strong>액션:</strong> {selectedMcpCall.action}</p>
+                        <p><strong>파라미터:</strong></p>
+                        <pre>{JSON.stringify(selectedMcpCall.args, null, 2)}</pre>
+                      </div>
+                      
+                      <div className="detail-section">
+                        <h4>📥 응답 정보</h4>
+                        <p><strong>상태:</strong> <span className={`status-badge ${selectedMcpCall.status}`}>{selectedMcpCall.status}</span></p>
+                        <p><strong>시간:</strong> {new Date(selectedMcpCall.timestamp).toLocaleString()}</p>
+                        <p><strong>응답 데이터:</strong></p>
+                        <pre>{JSON.stringify(selectedMcpCall.response, null, 2)}</pre>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -945,9 +983,9 @@ export default function App() {
                   onClick={() => invokePureMCP("PDF_METADATA", { 
                     doc_ref: { 
                       type: "GITLAB", 
-                      project_path: mcpParams.projectPath, 
-                      path: mcpParams.pdfPath, 
-                      ref: mcpParams.pdfRef 
+                      project_path: "corp/policies", 
+                      path: "2025/AnnexA.pdf", 
+                      ref: "v2025.08" 
                     } 
                   })}
                   className="mcp-tool-button"
@@ -958,9 +996,9 @@ export default function App() {
                   onClick={() => invokePureMCP("PDF_TEXT", { 
                     doc_ref: { 
                       type: "GITLAB", 
-                      project_path: mcpParams.projectPath, 
-                      path: mcpParams.pdfPath, 
-                      ref: mcpParams.pdfRef 
+                      project_path: "corp/policies", 
+                      path: "2025/AnnexA.pdf", 
+                      ref: "v2025.08" 
                     } 
                   })}
                   className="mcp-tool-button"
@@ -969,7 +1007,7 @@ export default function App() {
                 </button>
                 <button 
                   onClick={() => invokePureMCP("GITLAB_GUIDE", { 
-                    project: mcpParams.project 
+                    project: "corp/policies" 
                   })}
                   className="mcp-tool-button"
                 >
