@@ -39,18 +39,21 @@
   gap: 1rem;
 }
 
-.api-key-section {
+.api-key-section,
+.github-token-section {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.api-key-section label {
+.api-key-section label,
+.github-token-section label {
   font-weight: 500;
   color: #4a5568;
 }
 
-.api-key-input {
+.api-key-input,
+.github-token-input {
   padding: 0.75rem 1rem;
   border: 1px solid #d1d5db;
   border-radius: 8px;
@@ -59,7 +62,8 @@
   transition: all 0.2s ease;
 }
 
-.api-key-input:focus {
+.api-key-input:focus,
+.github-token-input:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
@@ -820,6 +824,57 @@ h3 {
   gap: 1.5rem;
   height: calc(100vh - 200px);
   min-height: 600px;
+}
+
+/* Planner & Worker 탭 */
+.response-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+}
+
+.response-tabs .tab-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.planner-tab,
+.worker-tab {
+  padding: 1rem;
+}
+
+.planner-content,
+.worker-content {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+}
+
+.response-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.response-role {
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.response-time {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.response-text {
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .input-section {

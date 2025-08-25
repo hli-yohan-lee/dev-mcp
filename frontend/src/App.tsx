@@ -22,11 +22,17 @@ type TabType = "gpt" | "mcp-backend" | "mcp-pure" | "combined";
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>("gpt");
   const [apiKey, setApiKey] = useState("");
+  const [githubToken, setGithubToken] = useState("");
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [mcpCalls, setMcpCalls] = useState<MCPCall[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMcpCall, setSelectedMcpCall] = useState<MCPCall | null>(null);
+  
+  // Planner & Worker 탭 상태
+  const [activeResponseTab, setActiveResponseTab] = useState<'planner' | 'worker'>('planner');
+  const [plannerResponse, setPlannerResponse] = useState<string>('');
+  const [workerResponse, setWorkerResponse] = useState<string>('');
   
   // 디버그 로그 상태
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
@@ -616,7 +622,7 @@ export default function App() {
         const githubResult = await invokePureMCP("github", { 
           repository: "hli-yohan-lee/dev-guide",
           username: "hli-yohan-lee",
-          password: "test"
+          password: githubToken
         });
         if (githubResult && githubResult.status === "success") {
           results.push({
@@ -764,13 +770,7 @@ export default function App() {
           addDebugLog(`❌ OpenAI API 에러 응답 감지: ${JSON.stringify(data.error)}`);
           const errorMessage = `OpenAI API 에러: ${data.error.message || data.error.type || '알 수 없는 에러'}`;
           
-          setMessages(prev => 
-            prev.map(msg => 
-              msg.id === streamingMessage.id 
-                ? { ...msg, content: errorMessage }
-                : msg
-            )
-          );
+          setPlannerResponse(errorMessage);
           return;
         }
         
@@ -782,13 +782,7 @@ export default function App() {
         
         if (!hasChoices || !hasMessage || !hasContent || !contentNotEmpty) {
           const emptyResponseMessage = "OpenAI에서 응답을 받았지만 내용이 비어있습니다. 다시 시도해보세요.";
-          setMessages(prev => 
-            prev.map(msg => 
-              msg.id === streamingMessage.id 
-                ? { ...msg, content: emptyResponseMessage }
-                : msg
-            )
-          );
+          setPlannerResponse(emptyResponseMessage);
           return;
         }
         
@@ -910,6 +904,95 @@ export default function App() {
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 실행 계획 파싱 함수
+  const parseExecutionPlan = (plannerResponse: string) => {
+    try {
+      // JSON 배열 형태로 파싱 시도
+      const jsonMatch = plannerResponse.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+      
+      // 마크다운 리스트 형태로 파싱 시도
+      const lines = plannerResponse.split('\n');
+      const plan = [];
+      let currentStep = null;
+      
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('1.') || trimmed.startsWith('2.')) {
+          if (currentStep) {
+            plan.push(currentStep);
+          }
+          currentStep = { step: trimmed.replace(/^[-*]\s*/, '').replace(/^\d+\.\s*/, ''), tool: '', params: {} };
+        } else if (currentStep && trimmed.includes('tool:')) {
+          currentStep.tool = trimmed.split('tool:')[1].trim().replace(/['"]/g, '');
+        } else if (currentStep && trimmed.includes('params:')) {
+          try {
+            const paramsStr = trimmed.split('params:')[1].trim();
+            currentStep.params = JSON.parse(paramsStr);
+          } catch (e) {
+            // JSON 파싱 실패 시 기본값
+            currentStep.params = {};
+          }
+        }
+      }
+      
+      if (currentStep) {
+        plan.push(currentStep);
+      }
+      
+      return plan;
+    } catch (error) {
+      addDebugLog(`❌ 실행 계획 파싱 실패: ${error.message}`);
+      return [];
+    }
+  };
+
+  // MCP 단계 실행 함수
+  const executeMcpStep = async (step: any) => {
+    try {
+      addDebugLog(`⚡ MCP 단계 실행: ${step.step} (${step.tool})`);
+      
+      let result;
+      switch (step.tool) {
+        case 'pdf':
+          result = await invokePureMCP('pdf', step.params);
+          break;
+        case 'database':
+          result = await invokePureMCP('database', step.params);
+          break;
+        case 'github':
+          result = await invokePureMCP('github', { ...step.params, password: githubToken });
+          break;
+        case 'health':
+          result = await invokePureMCP('health', step.params);
+          break;
+        default:
+          throw new Error(`알 수 없는 도구: ${step.tool}`);
+      }
+      
+      return {
+        step: step.step,
+        tool: step.tool,
+        status: result.status,
+        data: result.response?.data,
+        error: result.response?.error
+      };
+    } catch (error: any) {
+      addDebugLog(`❌ MCP 단계 실행 실패: ${error.message}`);
+      return {
+        step: step.step,
+        tool: step.tool,
+        status: 'error',
+        error: error.message
+      };
     }
   };
 
@@ -1194,51 +1277,89 @@ export default function App() {
                 </button>
               </div>
 
-              {/* 가운데: LLM 답변 출력 */}
+              {/* 가운데: Planner & Worker 탭 */}
               <div className="response-section">
-                <h3>🤖 현재 질문에 대한 답변</h3>
+                <div className="response-tabs">
+                  <button 
+                    className={`tab-button ${activeResponseTab === 'planner' ? 'active' : ''}`}
+                    onClick={() => setActiveResponseTab('planner')}
+                  >
+                    🧠 Planner
+                  </button>
+                  <button 
+                    className={`tab-button ${activeResponseTab === 'worker' ? 'active' : ''}`}
+                    onClick={() => setActiveResponseTab('worker')}
+                  >
+                    🔧 Worker
+                  </button>
+                </div>
+                
                 <div className="response-content">
-                  {messages.length > 0 ? (
-                    <div className="current-response">
-                      {/* 가장 최근 어시스턴트 메시지만 표시 */}
-                      {(() => {
-                        const latestAssistantMessage = messages
-                          .filter(m => m.role === 'assistant')
-                          .pop();
-                        
-                        if (latestAssistantMessage) {
-                          return (
-                            <div className="assistant-response">
-                              <div className="response-header">
-                                <span className="response-role">🤖 GPT 답변</span>
-                                <span className="response-time">
-                                  {new Date(latestAssistantMessage.timestamp).toLocaleTimeString()}
-                                </span>
-                              </div>
-                              <div className="response-text">
-                                {latestAssistantMessage.content}
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                      {isLoading && (
+                  {activeResponseTab === 'planner' && (
+                    <div className="planner-tab">
+                      <h3>🧠 Planner - 실행 계획</h3>
+                      {plannerResponse ? (
+                        <div className="planner-content">
+                          <div className="response-header">
+                            <span className="response-role">🧠 GPT Planner</span>
+                            <span className="response-time">
+                              {new Date().toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <div className="response-text">
+                            {plannerResponse}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="no-response">
+                          <p>아직 실행 계획이 없습니다.</p>
+                          <p>질문을 입력하고 전송해보세요.</p>
+                        </div>
+                      )}
+                      {isLoading && activeResponseTab === 'planner' && (
                         <div className="loading-indicator">
                           <div className="typing-indicator">
                             <span></span>
                             <span></span>
                             <span></span>
                           </div>
-                          <p>AI가 생각하고 있습니다...</p>
+                          <p>Planner가 계획을 세우고 있습니다...</p>
                         </div>
                       )}
                     </div>
-                  ) : (
-                    <div className="no-response">
-                      <p>아직 답변이 없습니다.</p>
-                      <p>질문을 입력하고 전송해보세요.</p>
-                      <p>AI가 자동으로 필요한 정보를 가져와서 답변합니다!</p>
+                  )}
+                  
+                  {activeResponseTab === 'worker' && (
+                    <div className="worker-tab">
+                      <h3>🔧 Worker - 최종 실행 결과</h3>
+                      {workerResponse ? (
+                        <div className="worker-content">
+                          <div className="response-header">
+                            <span className="response-role">🔧 GPT Worker</span>
+                            <span className="response-time">
+                              {new Date().toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <div className="response-text">
+                            {workerResponse}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="no-response">
+                          <p>아직 최종 결과가 없습니다.</p>
+                          <p>Planner가 계획을 완료한 후 Worker가 실행됩니다.</p>
+                        </div>
+                      )}
+                      {isLoading && activeResponseTab === 'worker' && (
+                        <div className="loading-indicator">
+                          <div className="typing-indicator">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </div>
+                          <p>Worker가 실행 결과를 생성하고 있습니다...</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1350,8 +1471,20 @@ export default function App() {
       <header className="header">
         <h1>🤖 MCP + GPT 통합 대시보드</h1>
         <div className="header-controls">
+          <div className="github-token-section">
+            <label htmlFor="github-token">GitHub Token:</label>
+            <input
+              id="github-token"
+              type="password"
+              value={githubToken}
+              onChange={(e) => setGithubToken(e.target.value)}
+              placeholder="GitHub Personal Access Token"
+              className="github-token-input"
+            />
+          </div>
+          
           <div className="api-key-section">
-            <label htmlFor="api-key">API 키:</label>
+            <label htmlFor="api-key">OpenAI API Key:</label>
             <input
               id="api-key"
               type="password"
