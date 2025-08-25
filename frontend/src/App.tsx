@@ -726,21 +726,40 @@ export default function App() {
       }, null, 2)}`);
       
       const requestData = {
-        model: "gpt-3.5-turbo",
+        model: "gpt-5-mini",
         messages: [
           {
             role: "system",
-            content: `당신은 MCP(Model Context Protocol) 도구들을 사용할 수 있는 AI 어시스턴트입니다. 
-사용자의 질문에 답변할 때, 필요한 정보가 있다면 MCP 도구를 사용하여 자동으로 가져와야 합니다.
+            content: `당신은 MCP(Model Context Protocol) Planner입니다. 
+
+사용자의 질문을 분석하여 실행 계획을 생성해야 합니다.
 
 사용 가능한 MCP 도구들:
-- PDF 관련: pdf (파일명으로 PDF 내용 읽기)
-- 데이터베이스: database (테이블명으로 데이터 조회)
-- GitHub: github (저장소 정보 및 파일 내용)
+- PDF 관련: pdf (guide_type으로 백엔드/프론트/디비 가이드 선택)
+- 데이터베이스: database (role_filter로 백엔드/프론트/DBA/풀스택 선택)
+- GitHub: github (file_type으로 GIT/API 가이드 선택)
 - 시스템 상태: health (백엔드 상태 확인)
 
-사용자의 질문을 분석하여 필요한 MCP 도구를 자동으로 호출하고, 그 결과를 포함하여 답변하세요.
-답변은 친근하고 도움이 되는 톤으로 작성하세요.`
+중요: 
+- guide_type은 정확히 "backend", "frontend", "database"만 사용하세요.
+- role_filter는 정확히 "backend", "frontend", "DBA", "fullstack"만 사용하세요.
+- file_type은 정확히 "GIT", "API"만 사용하세요.
+
+계획 형식:
+[
+  { step: "단계명", tool: "도구명", params: {파라미터} },
+  ...
+]
+
+예시: "GitHub 가이드와 백엔드 개발자 정보를 알려줘"
+[
+  { step: "GitHub GIT 가이드 조회", tool: "github", params: {"file_type": "GIT"} },
+  { step: "백엔드 개발자 조회", tool: "database", params: {"role_filter": "backend"} }
+]
+
+주의: 파라미터 값은 정확히 영어로 입력해야 합니다!
+
+계획만 생성하고, 실제 실행은 하지 마세요.`
           },
           ...messages.map(m => ({ role: m.role, content: m.content })),
           { role: "user", content: prompt }
@@ -786,51 +805,143 @@ export default function App() {
           return;
         }
         
-        // 2단계: GPT 응답에서 MCP 도구 사용 필요성 분석
-        const gptResponse = data.choices[0].message.content;
-        addDebugLog(`🤖 GPT 초기 응답: ${gptResponse.substring(0, 100)}...`);
+        // 2단계: GPT Planner 응답에서 실행 계획 파싱
+        const plannerResponseText = data.choices[0].message.content;
+        addDebugLog(`🤖 GPT Planner 응답: ${plannerResponseText.substring(0, 100)}...`);
         
-        // MCP 도구 사용이 필요한지 판단
-        const needsMcpTools = await analyzeAndUseMcpTools(gptResponse, prompt);
-        
-        // 3단계: 최종 응답 생성 (MCP 도구 결과 포함)
-        let finalResponse = gptResponse;
-        if (needsMcpTools.length > 0) {
-          finalResponse += "\n\n🔧 **MCP 도구 실행 결과:**\n";
-          needsMcpTools.forEach((result, index) => {
-            finalResponse += `\n**${index + 1}. ${result.action}**\n`;
-            if (result.status === "success") {
-              finalResponse += `✅ 성공: ${result.summary}\n`;
-            } else {
-              finalResponse += `❌ 실패: ${result.error}\n`;
-            }
-          });
-        }
-        
-        // 스트리밍 효과로 최종 응답 표시
-        addDebugLog(`🎬 최종 응답 스트리밍 시작 - 총 ${finalResponse.length}자`);
-        let currentText = "";
-        
-        for (let i = 0; i < finalResponse.length; i++) {
-          currentText += finalResponse[i];
+        // Planner 응답을 상태에 저장하고 스트리밍으로 표시
+        setPlannerResponse('');
+        let currentPlannerText = "";
+        for (let i = 0; i < plannerResponseText.length; i++) {
+          currentPlannerText += plannerResponseText[i];
+          setPlannerResponse(currentPlannerText);
+          
+          // 스트리밍 메시지도 함께 업데이트
           setMessages(prev => 
             prev.map(msg => 
               msg.id === streamingMessage.id 
-                ? { ...msg, content: currentText }
+                ? { ...msg, content: currentPlannerText }
                 : msg
             )
           );
           
-          // 진행률 로깅 (10% 단위)
-          if (i % Math.ceil(finalResponse.length / 10) === 0) {
-            const progress = Math.round((i / finalResponse.length) * 100);
-            addDebugLog(`📈 스트리밍 진행률: ${progress}% (${i}/${finalResponse.length}자)`);
-          }
-          
           await new Promise(resolve => setTimeout(resolve, 20)); // 20ms 딜레이
         }
         
-        addDebugLog(`✅ 복합 통합 스트리밍 완료 - 총 ${finalResponse.length}자 표시됨`);
+        // Planner 완료 후 바로 Worker 탭으로 전환
+        setActiveResponseTab('worker');
+        
+        // 실행 계획 파싱
+        const executionPlan = parseExecutionPlan(plannerResponseText);
+        addDebugLog(`📋 실행 계획: ${JSON.stringify(executionPlan)}`);
+        
+        // 3단계: MCP 서버를 통한 계획 실행
+        let executionResults = [];
+        if (executionPlan.length > 0) {
+          addDebugLog(`🚀 MCP 실행 시작 - 총 ${executionPlan.length}단계`);
+          
+          for (const step of executionPlan) {
+            try {
+              addDebugLog(`⚡ 단계 실행: ${step.step} (${step.tool})`);
+              const result = await executeMcpStep(step);
+              executionResults.push(result);
+              
+              // MCP 호출 결과를 mcpCalls에 추가
+              const mcpCall = {
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                action: result.tool,
+                args: step.params || {},
+                status: result.status as "success" | "error",
+                response: result.data ? { ok: true, data: result.data } : { ok: false, error: result.error },
+                timestamp: new Date().toISOString()
+              };
+              setMcpCalls(prev => [...prev, mcpCall]);
+              
+              addDebugLog(`✅ 단계 완료: ${step.step}`);
+            } catch (error: any) {
+              addDebugLog(`❌ 단계 실패: ${step.step} - ${error.message}`);
+              const errorResult = {
+                step: step.step,
+                tool: step.tool,
+                status: "error",
+                error: error.message
+              };
+              executionResults.push(errorResult);
+              
+              // 에러 결과도 mcpCalls에 추가
+              const errorMcpCall = {
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                action: step.tool,
+                args: step.params || {},
+                status: "error" as "success" | "error",
+                response: { ok: false, error: error.message },
+                timestamp: new Date().toISOString()
+              };
+              setMcpCalls(prev => [...prev, errorMcpCall]);
+            }
+          }
+        }
+        
+        // 4단계: Worker로 최종 답변 생성
+        addDebugLog(`🔧 Worker 단계 시작 - MCP 실행 결과를 포함한 최종 요청`);
+        
+        // Worker용 프롬프트 생성
+        const workerPrompt = `사용자 질문: "${prompt}"
+
+실행 계획:
+${plannerResponseText}
+
+MCP 실행 결과:
+${executionResults.map((result: any, index) => {
+  if (result.status === 'success') {
+    return `${index + 1}. ${result.step} (${result.tool}): ✅ 성공\n   데이터: ${JSON.stringify(result.data, null, 2)}`;
+  } else {
+    return `${index + 1}. ${result.step} (${result.tool}): ❌ 실패\n   에러: ${result.error}`;
+  }
+}).join('\n')}
+
+위 정보를 바탕으로 사용자 질문에 대한 최종 답변을 생성해주세요. MCP 실행 결과의 실제 데이터 내용을 포함하여 구체적이고 유용한 답변을 제공하세요.`;
+
+        // Worker로 최종 답변 요청
+        const workerRequestData = {
+          model: "gpt-5-mini",
+          messages: [
+            {
+              role: "system",
+              content: "당신은 MCP Worker입니다. Planner의 실행 계획과 MCP 실행 결과를 바탕으로 사용자 질문에 대한 최종 답변을 생성합니다."
+            },
+            { role: "user", content: workerPrompt }
+          ],
+          stream: false
+        };
+        
+        const workerResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${cleanApiKey}`,
+          },
+          body: JSON.stringify(workerRequestData),
+        });
+        
+        if (workerResponse.ok) {
+          const workerData = await workerResponse.json();
+          const workerResponseText = workerData.choices[0].message.content;
+          
+          // Worker 응답을 상태에 저장하고 스트리밍으로 표시
+          setWorkerResponse('');
+          let currentWorkerText = "";
+          for (let i = 0; i < workerResponseText.length; i++) {
+            currentWorkerText += workerResponseText[i];
+            setWorkerResponse(currentWorkerText);
+            await new Promise(resolve => setTimeout(resolve, 20)); // 20ms 딜레이
+          }
+          
+          addDebugLog(`✅ Worker 완료 - 최종 답변 생성됨`);
+        } else {
+          addDebugLog(`❌ Worker 요청 실패: ${workerResponse.status}`);
+          setWorkerResponse('Worker 요청에 실패했습니다.');
+        }
       } else {
         // HTTP 에러 처리
         let errorMessage = "";
