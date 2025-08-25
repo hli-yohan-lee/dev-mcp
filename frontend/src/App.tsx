@@ -61,9 +61,9 @@ export default function App() {
       keys.forEach((key, index) => {
         const value = values[index];
         const valueType = typeof value;
-        const valueLength = value?.length || 'N/A';
+        const valueLength = typeof value === 'string' ? value.length : 'N/A';
         const valuePreview = valueType === 'string' 
-          ? `"${value.substring(0, 50)}${value.length > 50 ? '...' : ''}"`
+          ? `"${(value as string).substring(0, 50)}${(value as string).length > 50 ? '...' : ''}"`
           : valueType === 'object' 
             ? JSON.stringify(value).substring(0, 100)
             : String(value);
@@ -1176,6 +1176,13 @@ export default function App() {
                   className="input-textarea"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
+                  onKeyPress={(e) => handleKeyPress(e, () => {
+                    // 엔터 시 중간과 오른쪽 내역 초기화
+                    setMessages([]);
+                    setMcpCalls([]);
+                    // GPT 요청 처리
+                    handleCombinedGPT();
+                  })}
                   placeholder="GPT에게 질문을 입력하세요..."
                 />
                 <button 
@@ -1189,24 +1196,33 @@ export default function App() {
 
               {/* 가운데: LLM 답변 출력 */}
               <div className="response-section">
-                <h3>GPT 답변 + MCP 도구 결과</h3>
+                <h3>🤖 현재 질문에 대한 답변</h3>
                 <div className="response-content">
                   {messages.length > 0 ? (
                     <div className="current-response">
-                      {messages.filter(m => m.role === 'assistant').map((message, index) => (
-                        <div key={message.id} className="assistant-response">
-                          {index > 0 && <hr style={{margin: '1rem 0', border: '1px solid #e2e8f0'}} />}
-                          <div className="response-header">
-                            <span className="response-role">🤖 GPT 답변</span>
-                            <span className="response-time">
-                              {new Date(message.timestamp).toLocaleTimeString()}
-                            </span>
-                          </div>
-                          <div className="response-text">
-                            {message.content}
-                          </div>
-                        </div>
-                      ))}
+                      {/* 가장 최근 어시스턴트 메시지만 표시 */}
+                      {(() => {
+                        const latestAssistantMessage = messages
+                          .filter(m => m.role === 'assistant')
+                          .pop();
+                        
+                        if (latestAssistantMessage) {
+                          return (
+                            <div className="assistant-response">
+                              <div className="response-header">
+                                <span className="response-role">🤖 GPT 답변</span>
+                                <span className="response-time">
+                                  {new Date(latestAssistantMessage.timestamp).toLocaleTimeString()}
+                                </span>
+                              </div>
+                              <div className="response-text">
+                                {latestAssistantMessage.content}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                       {isLoading && (
                         <div className="loading-indicator">
                           <div className="typing-indicator">
@@ -1230,42 +1246,79 @@ export default function App() {
 
               {/* 오른쪽: MCP 호출 내역 */}
               <div className="mcp-section">
-                <h3>🔧 MCP 도구 자동 실행 내역</h3>
+                <h3>🔧 현재 질문에 대한 MCP 도구 실행</h3>
                 {mcpCalls.length > 0 ? (
                   <div className="mcp-calls-list">
-                    {mcpCalls.slice(0, 10).map((call) => (
-                      <div 
-                        key={call.id} 
-                        className={`mcp-call-item ${call.status}`}
-                        onClick={() => setSelectedMcpCall(call)}
-                      >
-                        <div className="call-header">
-                          <span className="call-action">{call.action}</span>
-                          <span className={`call-status ${call.status}`}>
-                            {call.status === "success" ? "✅" : "❌"}
-                          </span>
-                          <span className="call-time">
-                            {new Date(call.timestamp).toLocaleTimeString()}
-                          </span>
-                        </div>
-                        <div className="call-preview">
-                          {call.status === "success" 
-                            ? `✅ 성공 - ${call.response?.data ? '데이터 수신' : '응답 완료'}`
-                            : `❌ 오류: ${call.response?.error || '알 수 없는 오류'}`
-                          }
-                        </div>
-                        {call.status === "success" && call.response?.data && (
-                          <div className="call-data-preview">
-                            <small>
-                              {call.action === "pdf" && `파일: ${call.response.data.filename}, 길이: ${call.response.data.length}자`}
-                              {call.action === "database" && `테이블: ${call.response.data.table}, 레코드: ${call.response.data.count}개`}
-                              {call.action === "health" && `상태: ${call.response.data.status}`}
-                              {call.action === "github" && `저장소: ${call.response.data.repository}`}
-                            </small>
+                    {/* 가장 최근 질문에 대한 MCP 호출만 표시 */}
+                    {(() => {
+                      // messages가 비어있으면 MCP 호출도 표시하지 않음
+                      if (messages.length === 0) {
+                        return (
+                          <div className="no-recent-calls">
+                            <p>새로운 질문을 입력해주세요.</p>
+                            <p>AI가 필요한 정보를 자동으로 가져올 예정입니다!</p>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        );
+                      }
+                      
+                      // 가장 최근 사용자 메시지의 시간을 찾기
+                      const latestUserMessage = messages
+                        .filter(m => m.role === 'user')
+                        .pop();
+                      
+                      if (latestUserMessage) {
+                        const latestTime = new Date(latestUserMessage.timestamp).getTime();
+                        const threshold = latestTime - 60000; // 1분 이내의 MCP 호출만 표시
+                        
+                        const recentCalls = mcpCalls.filter(call => 
+                          new Date(call.timestamp).getTime() >= threshold
+                        );
+                        
+                        if (recentCalls.length > 0) {
+                          return recentCalls.map((call) => (
+                            <div 
+                              key={call.id} 
+                              className={`mcp-call-item ${call.status}`}
+                              onClick={() => setSelectedMcpCall(call)}
+                            >
+                              <div className="call-header">
+                                <span className="call-action">{call.action}</span>
+                                <span className={`call-status ${call.status}`}>
+                                  {call.status === "success" ? "✅" : "❌"}
+                                </span>
+                                <span className="call-time">
+                                  {new Date(call.timestamp).toLocaleTimeString()}
+                                </span>
+                              </div>
+                              <div className="call-preview">
+                                {call.status === "success" 
+                                  ? `✅ 성공 - ${call.response?.data ? '데이터 수신' : '응답 완료'}`
+                                  : `❌ 오류: ${call.response?.error || '알 수 없는 오류'}`
+                                }
+                              </div>
+                              {call.status === "success" && call.response?.data && (
+                                <div className="call-data-preview">
+                                  <small>
+                                    {call.action === "pdf" && `파일: ${call.response.data.filename}, 길이: ${call.response.data.length}자`}
+                                    {call.action === "database" && `테이블: ${call.response.data.table}, 레코드: ${call.response.data.count}개`}
+                                    {call.action === "health" && `상태: ${call.response.data.status}`}
+                                    {call.action === "github" && `저장소: ${call.response.data.repository}`}
+                                  </small>
+                                </div>
+                              )}
+                            </div>
+                          ));
+                        }
+                      }
+                      
+                      // 최근 MCP 호출이 없으면 기본 메시지 표시
+                      return (
+                        <div className="no-recent-calls">
+                          <p>현재 질문에 대한 MCP 도구 실행이 없습니다.</p>
+                          <p>AI가 필요한 정보를 자동으로 가져올 예정입니다!</p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : (
                   <div className="no-calls">
