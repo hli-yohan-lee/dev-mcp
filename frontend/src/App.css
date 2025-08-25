@@ -92,6 +92,7 @@
 .main-content {
   flex: 1;
   overflow: hidden;
+  display: flex;
 }
 
 /* 왼쪽 패널 */
