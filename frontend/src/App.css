@@ -95,6 +95,51 @@
   display: flex;
 }
 
+/* 탭 콘텐츠 기본 스타일 */
+.tab-content {
+  flex: 1;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin: 1rem;
+  height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+/* 각 화면별 스크롤 스타일 */
+.chat-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  height: 100%;
+  overflow: hidden;
+}
+
+.mcp-backend-section,
+.mcp-pure-section,
+.combined-section {
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.backend-tools,
+.mcp-tools {
+  margin-bottom: 2rem;
+}
+
+.tool-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.mcp-calls-section {
+  margin-top: 2rem;
+}
+
 /* 왼쪽 패널 */
 .left-panel {
   display: flex;
@@ -1252,5 +1297,36 @@ h3 {
     align-items: flex-start;
     gap: 0.5rem;
   }
+}
+
+/* 스크롤바 스타일링 */
+.tab-content::-webkit-scrollbar,
+.mcp-backend-section::-webkit-scrollbar,
+.mcp-pure-section::-webkit-scrollbar,
+.combined-section::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tab-content::-webkit-scrollbar-track,
+.mcp-backend-section::-webkit-scrollbar-track,
+.mcp-pure-section::-webkit-scrollbar-track,
+.combined-section::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.tab-content::-webkit-scrollbar-thumb,
+.mcp-backend-section::-webkit-scrollbar-thumb,
+.mcp-pure-section::-webkit-scrollbar-thumb,
+.combined-section::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.tab-content::-webkit-scrollbar-thumb:hover,
+.mcp-backend-section::-webkit-scrollbar-thumb:hover,
+.mcp-pure-section::-webkit-scrollbar-thumb:hover,
+.combined-section::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
