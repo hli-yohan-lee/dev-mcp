@@ -847,17 +847,6 @@ export default function App() {
               const result = await executeMcpStep(step);
               executionResults.push(result);
               
-              // MCP 호출 결과를 mcpCalls에 추가
-              const mcpCall = {
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                action: result.tool,
-                args: step.params || {},
-                status: result.status as "success" | "error",
-                response: result.data ? { ok: true, data: result.data } : { ok: false, error: result.error },
-                timestamp: new Date().toISOString()
-              };
-              setMcpCalls(prev => [...prev, mcpCall]);
-              
               addDebugLog(`✅ 단계 완료: ${step.step}`);
             } catch (error: any) {
               addDebugLog(`❌ 단계 실패: ${step.step} - ${error.message}`);
@@ -868,17 +857,6 @@ export default function App() {
                 error: error.message
               };
               executionResults.push(errorResult);
-              
-              // 에러 결과도 mcpCalls에 추가
-              const errorMcpCall = {
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                action: step.tool,
-                args: step.params || {},
-                status: "error" as "success" | "error",
-                response: { ok: false, error: error.message },
-                timestamp: new Date().toISOString()
-              };
-              setMcpCalls(prev => [...prev, errorMcpCall]);
             }
           }
         }
@@ -1462,7 +1440,7 @@ ${executionResults.map((result: any, index) => {
                 <div className="response-content">
                   {activeResponseTab === 'planner' && (
                     <div className="planner-tab">
-                      <h3>🧠 Planner - 실행 계획</h3>
+
                       {plannerResponse ? (
                         <div className="planner-content">
                           <div className="response-header">
@@ -1496,7 +1474,7 @@ ${executionResults.map((result: any, index) => {
                   
                   {activeResponseTab === 'worker' && (
                     <div className="worker-tab">
-                      <h3>🔧 Worker - 최종 실행 결과</h3>
+
                       {workerResponse ? (
                         <div className="worker-content">
                           <div className="response-header">
