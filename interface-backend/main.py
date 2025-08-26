@@ -13,6 +13,10 @@ import base64
 import asyncio
 import subprocess
 from mcp import ClientSession, StdioServerParameters
+import urllib3
+
+# SSL 경고 억제 (로컬 환경에서 인증서 문제 해결)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = FastAPI(title="Interface Backend API", version="1.0.0")
 
@@ -321,7 +325,8 @@ async def get_github_content(request: GithubRequest):
             # 특정 파일 내용 가져오기
             api_url = f"https://api.github.com/repos/{request.repository}/contents/{request.file_path}"
             
-            response = requests.get(api_url, headers=headers)
+            # SSL 검증 우회 (로컬 환경에서 인증서 문제 해결)
+            response = requests.get(api_url, headers=headers, verify=False)
             
             if response.status_code == 404:
                 return {"ok": False, "error": f"파일을 찾을 수 없습니다: {request.file_path}"}
@@ -359,7 +364,8 @@ async def get_github_content(request: GithubRequest):
                 if download_url:
                     print(f"📥 다운로드 URL로 파일 내용 가져오기: {download_url}")
                     try:
-                        download_response = requests.get(download_url, headers=headers)
+                        # SSL 검증 우회 (로컬 환경에서 인증서 문제 해결)
+                        download_response = requests.get(download_url, headers=headers, verify=False)
                         if download_response.status_code == 200:
                             file_bytes = download_response.content
                             print(f"📥 다운로드 완료: {len(file_bytes)} bytes")
@@ -390,7 +396,8 @@ async def get_github_content(request: GithubRequest):
             # 저장소 파일 목록 가져오기
             api_url = f"https://api.github.com/repos/{request.repository}/contents"
             
-            response = requests.get(api_url, headers=headers)
+            # SSL 검증 우회 (로컬 환경에서 인증서 문제 해결)
+            response = requests.get(api_url, headers=headers, verify=False)
             
             if response.status_code == 401:
                 return {"ok": False, "error": "GitHub 인증 실패"}

@@ -31,13 +31,18 @@ if errorlevel 1 (
 
 timeout /t 2 /nobreak >nul
 
-echo Starting Backend Server...
-start "Backend Server" cmd /k "cd backend && python main.py"
+echo Starting Gateway Backend (MCP Gateway)...
+start "Gateway Backend" cmd /k "cd gateway-backend && python gateway.py"
 
 timeout /t 2 /nobreak >nul
 
-echo Starting MCP Server...
-start "MCP Server" cmd /k "cd mcp-server && set MCP_ID=mcp && python app.py"
+echo Starting Interface Backend...
+start "Interface Backend" cmd /k "cd interface-backend && python main.py"
+
+timeout /t 2 /nobreak >nul
+
+echo Starting MCP Server (HTTP mode)...
+start "MCP Server" cmd /k "cd mcp-server && python app.py"
 
 timeout /t 2 /nobreak >nul
 
@@ -47,7 +52,8 @@ start "Frontend" cmd /k "cd frontend && npm run dev"
 echo.
 echo MCP Stack started!
 echo Frontend: http://localhost:3000
-echo Backend Server: http://localhost:9000
+echo Gateway Backend: http://localhost:9000
+echo Interface Backend: http://localhost:9002
 echo MCP Server: http://localhost:9001
 echo.
 echo To stop: close each terminal window or run stop.bat
