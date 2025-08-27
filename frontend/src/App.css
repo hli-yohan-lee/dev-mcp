@@ -131,9 +131,13 @@
 }
 
 .mcp-backend-section,
-.combined-section {
+.step1-section,
+.step2-section {
   height: 100%;
   overflow-y: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2rem;
 }
 
 
@@ -537,7 +541,8 @@
 @media (max-width: 1200px) {
   .chat-section,
   .mcp-backend-section,
-  .combined-section {
+  .step1-section,
+  .step2-section {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
@@ -1049,7 +1054,7 @@ h3 {
 /* 반응형 디자인 */
 @media (max-width: 1200px) {
   .mcp-backend-section,
-  .combined-section {
+.combined-section {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
@@ -1290,27 +1295,31 @@ h3 {
 /* 스크롤바 스타일링 */
 .tab-content::-webkit-scrollbar,
 .mcp-backend-section::-webkit-scrollbar,
-.combined-section::-webkit-scrollbar {
+.step1-section::-webkit-scrollbar,
+.step2-section::-webkit-scrollbar {
   width: 8px;
 }
 
 .tab-content::-webkit-scrollbar-track,
 .mcp-backend-section::-webkit-scrollbar-track,
-.combined-section::-webkit-scrollbar-track {
+.step1-section::-webkit-scrollbar-track,
+.step2-section::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
 
 .tab-content::-webkit-scrollbar-thumb,
 .mcp-backend-section::-webkit-scrollbar-thumb,
-.combined-section::-webkit-scrollbar-thumb {
+.step1-section::-webkit-scrollbar-thumb,
+.step2-section::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 4px;
 }
 
 .tab-content::-webkit-scrollbar-thumb:hover,
 .mcp-backend-section::-webkit-scrollbar-thumb:hover,
-.combined-section::-webkit-scrollbar-thumb:hover {
+.step1-section::-webkit-scrollbar-thumb:hover,
+.step2-section::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
 

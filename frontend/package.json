@@ -18,6 +18,11 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "@babel/preset-react": "^7.23.0",
+    "@babel/preset-typescript": "^7.23.0",
+    "@babel/plugin-transform-runtime": "^7.23.0",
     "@types/jsdom": "^21.1.7",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",

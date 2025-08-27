@@ -167,7 +167,7 @@ async def ask_agent(request: AskRequest) -> AskResponse:
         
         # OpenAI API 호출 (MCP tools 등록)
         completion = client.chat.completions.create(
-            model="gpt-4o-mini",  # gpt-5가 없으면 gpt-4o-mini 사용
+            model="gpt-5-mini",  # gpt-5-mini 모델 사용
             messages=[{"role": "user", "content": request.question}],
             tools=mcp_tools,
             tool_choice="auto"
@@ -242,7 +242,7 @@ async def ask_agent(request: AskRequest) -> AskResponse:
             try:
                 # 모든 도구 응답을 포함하여 최종 답변 생성
                 final_completion = client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model="gpt-5-mini",
                     messages=messages
                 )
                 

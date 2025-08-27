@@ -3,10 +3,10 @@ chcp 65001 >nul
 echo MCP Stack Starting...
 
 REM Kill existing processes
-echo Killing existing Node, Python, and Java processes...
-taskkill /F /IM node.exe >nul 2>&1
-taskkill /F /IM python.exe >nul 2>&1
-taskkill /F /IM java.exe >nul 2>&1
+REM echo Killing existing Node, Python, and Java processes...
+REM taskkill /F /IM node.exe >nul 2>&1
+REM taskkill /F /IM python.exe >nul 2>&1
+REM taskkill /F /IM java.exe >nul 2>&1
 
 
 
