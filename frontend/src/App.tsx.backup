@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState } from "react";
 import "./App.css";
 import { TabType } from "./types";
 import { useDebug } from "./hooks/useDebug";
@@ -13,41 +13,6 @@ export default function App() {
   const [githubToken, setGithubToken] = useState("");
   
   const { debugLogs, showDebugPanel, addDebugLog, clearDebugLogs, toggleDebugPanel } = useDebug();
-
-  // 토큰 파일에서 키 로드
-  useEffect(() => {
-    const loadTokens = async () => {
-      try {
-        const response = await fetch("/config/tokens.txt");
-        if (response.ok) {
-          const text = await response.text();
-          const lines = text.split("\n");
-          
-          for (const line of lines) {
-            if (line.startsWith("OPENAI_API_KEY=")) {
-              const key = line.split("=")[1];
-              if (key && key.trim()) {
-                setApiKey(key.trim());
-                addDebugLog("✅ OpenAI API Key 로드됨");
-              }
-            } else if (line.startsWith("GITHUB_TOKEN=")) {
-              const token = line.split("=")[1];
-              if (token && token.trim()) {
-                setGithubToken(token.trim());
-                addDebugLog("✅ GitHub Token 로드됨");
-              }
-            }
-          }
-        } else {
-          addDebugLog("⚠️ 토큰 파일을 찾을 수 없습니다. 수동으로 입력해주세요.");
-        }
-      } catch (error) {
-        addDebugLog("⚠️ 토큰 파일 로드 실패. 수동으로 입력해주세요.");
-      }
-    };
-
-    loadTokens();
-  }, [addDebugLog]);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -66,7 +31,7 @@ export default function App() {
 
   return (
     <div className="App">
-      {/* 헤더 */}
+      {/* ?ㅻ뜑 */}
       <header className="header">
         <h1>MCP Integration System</h1>
         <div className="header-controls">
@@ -90,50 +55,48 @@ export default function App() {
             className="debug-toggle-button"
             onClick={toggleDebugPanel}
           >
-            {showDebugPanel ? "디버그 숨기기" : "디버그 보기"}
+            {showDebugPanel ? "?붾쾭洹??④린湲? : "?붾쾭洹?蹂닿린"}
           </button>
         </div>
       </header>
 
-      {/* 탭 네비게이션 */}
+      {/* ???ㅻ퉬寃뚯씠??*/}
       <div className="tab-navigation">
         <button
           className={`tab-button ${activeTab === "gpt" ? "active" : ""}`}
           onClick={() => setActiveTab("gpt")}
         >
-          1. GPT 스트리밍
+          1. GPT ?ㅽ듃由щ컢
         </button>
         <button
           className={`tab-button ${activeTab === "interface-backend" ? "active" : ""}`}
           onClick={() => setActiveTab("interface-backend")}
         >
-          2. API 백엔드 테스트
-        </button>
+          2. API 諛깆뿏???뚯뒪??        </button>
         <button
           className={`tab-button ${activeTab === "1step" ? "active" : ""}`}
           onClick={() => setActiveTab("1step")}
         >
-          3. MCP 통합
+          3. MCP ?듯빀
         </button>
         <button
           className={`tab-button ${activeTab === "2step" ? "active" : ""}`}
           onClick={() => setActiveTab("2step")}
         >
-          4. 2 STEP 테스트
-        </button>
+          4. 2 STEP ?뚯뒪??        </button>
       </div>
 
-      {/* 메인 콘텐츠 영역 */}
+      {/* 硫붿씤 肄섑뀗痢??곸뿭 */}
       <div className="main-content">
         {renderTabContent()}
       </div>
 
-      {/* 디버그 패널 */}
+      {/* ?붾쾭洹??⑤꼸 */}
       {showDebugPanel && (
         <div className="debug-panel">
           <div className="debug-header">
-            <h3>디버그 로그</h3>
-            <button onClick={clearDebugLogs}>로그 지우기</button>
+            <h3>?붾쾭洹?濡쒓렇</h3>
+            <button onClick={clearDebugLogs}>濡쒓렇 吏?곌린</button>
           </div>
           <div className="debug-logs">
             {debugLogs.map((log, index) => (
@@ -146,4 +109,5 @@ export default function App() {
       )}
     </div>
   );
-}
+} 
+
