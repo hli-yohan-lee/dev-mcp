@@ -565,10 +565,8 @@ ${currentPrompt}
                   <div className="call-header">
                     <span className="action-badge">{call.action}</span>
                     <span className="status-badge">{call.status}</span>
+                    <span className="args-preview">{JSON.stringify(call.args).substring(0, 120)}...</span>
                     <span className="timestamp">{new Date(call.timestamp).toLocaleTimeString()}</span>
-                  </div>
-                  <div className="call-preview">
-                    <strong>Args:</strong> {JSON.stringify(call.args).substring(0, 100)}...
                   </div>
                 </div>
               ))
@@ -578,4 +576,4 @@ ${currentPrompt}
       </div>
     </div>
   );
-}; 
+};

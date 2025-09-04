@@ -84,6 +84,7 @@ export const MCPIntegrationPage: React.FC<MCPIntegrationPageProps> = ({ apiKey, 
         addDebugLog(`📊 MCP 호출 수: ${mcpCallsData.length}개`);
         
         // MCP 호출 내역을 mcpCalls 상태에 추가
+        addDebugLog(`📊 MCP 호출 수신: ${mcpCallsData.length}개`);
         if (mcpCallsData.length > 0) {
           const newMcpCalls = mcpCallsData.map((call: any) => ({
             id: call.id || Date.now().toString(),
@@ -94,7 +95,10 @@ export const MCPIntegrationPage: React.FC<MCPIntegrationPageProps> = ({ apiKey, 
             status: call.status
           }));
           
+          addDebugLog(`✅ MCP 호출 내역 상태 업데이트: ${JSON.stringify(newMcpCalls, null, 2)}`);
           setMcpCalls(prev => [...newMcpCalls, ...prev]);
+        } else {
+          addDebugLog(`⚠️ MCP 호출 내역이 비어있음 - OpenAI가 도구를 호출하지 않았을 가능성`);
         }
         
         // 응답을 상태에 저장하고 스트리밍으로 표시
@@ -200,4 +204,4 @@ export const MCPIntegrationPage: React.FC<MCPIntegrationPageProps> = ({ apiKey, 
       </div>
     </div>
   );
-}; 
+};
