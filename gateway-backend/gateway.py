@@ -1,12 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
+from typing import Dict, Any, List
 import json
 import asyncio
 import httpx
 from openai import OpenAI
-import os
 
 app = FastAPI(title="MCP Gateway Backend", version="1.0.0")
 
@@ -18,16 +16,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# 요청 모델
-class AskRequest(BaseModel):
-    question: str
-    api_key: str
-
-class AskResponse(BaseModel):
-    answer: str
-    tools_used: List[str] = []
-    mcp_calls: List[Dict[str, Any]] = []  # MCP 호출 상세 정보
 
 # MCP 서버 엔드포인트
 MCP_ENDPOINT = "http://localhost:9001"

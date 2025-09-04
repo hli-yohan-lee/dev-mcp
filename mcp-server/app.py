@@ -2,14 +2,12 @@
 Standard MCP Server with JSON-RPC 2.0 Protocol
 Implements Model Context Protocol specification
 """
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional, Union
 import json
-import asyncio
 import httpx
-from pathlib import Path
 import uuid
 import os
 import traceback
