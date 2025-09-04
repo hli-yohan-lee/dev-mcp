@@ -45,20 +45,60 @@ def get_openai_client(api_key: str) -> OpenAI:
     )
 
 async def get_mcp_tools() -> List[Dict[str, Any]]:
-    """MCP 서버에서 사용 가능한 도구 목록을 가져옵니다"""
+    """MCP 서버에서 사용 가능한 도구 목록을 가져옵니다 (JSON-RPC 2.0)"""
     try:
-        print("MCP 서버에서 도구 목록 조회 중...")
+        print("MCP 서버에서 도구 목록 조회 중 (JSON-RPC)...")
         
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{MCP_ENDPOINT}/mcp/tools")
+            # JSON-RPC 2.0 요청
+            jsonrpc_request = {
+                "jsonrpc": "2.0",
+                "method": "tools/list",
+                "params": {},
+                "id": 1
+            }
             
-            if response.status_code == 200:
-                tools = response.json()
-                print(f"MCP 도구 목록 조회 완료: {len(tools)}개")
-                return tools
-            else:
-                print(f"MCP 서버 응답 오류: HTTP {response.status_code}")
-                return []
+            # JSON-RPC 엔드포인트로 시도
+            try:
+                response = await client.post(f"{MCP_ENDPOINT}/", json=jsonrpc_request)
+                
+                if response.status_code == 200:
+                    jsonrpc_response = response.json()
+                    
+                    if "error" in jsonrpc_response:
+                        print(f"JSON-RPC 에러: {jsonrpc_response['error']}")
+                        # 레거시 REST API로 폴백
+                        response = await client.get(f"{MCP_ENDPOINT}/mcp/tools")
+                        if response.status_code == 200:
+                            tools = response.json()
+                            print(f"MCP 도구 목록 조회 완료 (REST): {len(tools)}개")
+                            return tools
+                    else:
+                        # JSON-RPC 응답에서 도구 추출
+                        tools_data = jsonrpc_response.get("result", {}).get("tools", [])
+                        # OpenAI 형식으로 변환
+                        openai_tools = []
+                        for tool in tools_data:
+                            openai_tool = {
+                                "type": "function",
+                                "function": {
+                                    "name": tool["name"],
+                                    "description": tool["description"],
+                                    "parameters": tool.get("inputSchema", tool.get("parameters", {}))
+                                }
+                            }
+                            openai_tools.append(openai_tool)
+                        print(f"MCP 도구 목록 조회 완료 (JSON-RPC): {len(openai_tools)}개")
+                        return openai_tools
+            except:
+                # JSON-RPC 실패 시 레거시 REST API 사용
+                response = await client.get(f"{MCP_ENDPOINT}/mcp/tools")
+                if response.status_code == 200:
+                    tools = response.json()
+                    print(f"MCP 도구 목록 조회 완료 (REST fallback): {len(tools)}개")
+                    return tools
+                    
+        return []
                 
     except Exception as e:
         print(f"MCP 도구 목록 조회 실패: {e}")
@@ -67,25 +107,69 @@ async def get_mcp_tools() -> List[Dict[str, Any]]:
         return []
 
 async def call_mcp_tool(tool_name: str, arguments: dict) -> dict:
-    """MCP 서버의 도구를 실행합니다"""
+    """MCP 서버의 도구를 실행합니다 (JSON-RPC 2.0)"""
     try:
-        print(f"MCP 도구 실행 시작: {tool_name}")
+        print(f"MCP 도구 실행 시작 (JSON-RPC): {tool_name}")
         
-        # MCP 서버 HTTP API 호출
         async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(f"{MCP_ENDPOINT}/mcp/call", json={
-                "tool": tool_name,
-                "arguments": arguments
-            })
+            # JSON-RPC 2.0 요청
+            jsonrpc_request = {
+                "jsonrpc": "2.0",
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                },
+                "id": f"call_{tool_name}_{asyncio.get_event_loop().time()}"
+            }
             
-            if response.status_code == 200:
-                result = response.json()
-                print(f"도구 {tool_name} 실행 완료")
-                return result
-            else:
-                error_msg = f"MCP 서버 응답 오류: HTTP {response.status_code}"
-                print(error_msg)
-                return {"error": error_msg}
+            # JSON-RPC 엔드포인트로 시도
+            try:
+                response = await client.post(f"{MCP_ENDPOINT}/", json=jsonrpc_request)
+                
+                if response.status_code == 200:
+                    jsonrpc_response = response.json()
+                    
+                    if "error" in jsonrpc_response:
+                        print(f"JSON-RPC 에러: {jsonrpc_response['error']}")
+                        # 레거시 REST API로 폴백
+                        response = await client.post(f"{MCP_ENDPOINT}/mcp/call", json={
+                            "tool": tool_name,
+                            "arguments": arguments
+                        })
+                        if response.status_code == 200:
+                            result = response.json()
+                            print(f"도구 {tool_name} 실행 완료 (REST fallback)")
+                            return result
+                    else:
+                        # JSON-RPC 응답 처리
+                        result_data = jsonrpc_response.get("result", {})
+                        # content 배열이 있으면 텍스트 추출
+                        if "content" in result_data:
+                            content = result_data["content"]
+                            if content and len(content) > 0:
+                                text = content[0].get("text", "")
+                                try:
+                                    return json.loads(text)
+                                except:
+                                    return {"data": text}
+                        print(f"도구 {tool_name} 실행 완료 (JSON-RPC)")
+                        return result_data
+            except:
+                # JSON-RPC 실패 시 레거시 REST API 사용
+                response = await client.post(f"{MCP_ENDPOINT}/mcp/call", json={
+                    "tool": tool_name,
+                    "arguments": arguments
+                })
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    print(f"도구 {tool_name} 실행 완료 (REST fallback)")
+                    return result
+                    
+            error_msg = f"MCP 서버 응답 오류"
+            print(error_msg)
+            return {"error": error_msg}
                 
     except Exception as e:
         print(f"MCP 도구 실행 실패: {e}")
